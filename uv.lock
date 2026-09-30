@@ -857,11 +857,21 @@ name = "mcp-confluence"
 version = "0.1.0"
 source = { editable = "packages/mcp_confluence" }
 dependencies = [
+    { name = "httpx" },
+    { name = "mcp" },
     { name = "mcp-common" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mcp-common", editable = "packages/mcp_common" }]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp", specifier = "<2" },
+    { name = "mcp-common", editable = "packages/mcp_common" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pydantic-settings", specifier = ">=2.4" },
+]
 
 [[package]]
 name = "mcp-data-platform-workspace"
@@ -903,11 +913,21 @@ name = "mcp-gitlab"
 version = "0.1.0"
 source = { editable = "packages/mcp_gitlab" }
 dependencies = [
+    { name = "httpx" },
+    { name = "mcp" },
     { name = "mcp-common" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mcp-common", editable = "packages/mcp_common" }]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp", specifier = "<2" },
+    { name = "mcp-common", editable = "packages/mcp_common" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pydantic-settings", specifier = ">=2.4" },
+]
 
 [[package]]
 name = "mcp-kafka"

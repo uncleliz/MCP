@@ -1,0 +1,12 @@
+{
+  "file_name": "retry.py",
+  "file_path": "src/retry.py",
+  "size": 139,
+  "encoding": "base64",
+  "content": "ZGVmIHJldHJ5X3BheW1lbnQocGF5bWVudCwgYXR0ZW1wdHM9Myk6CiAgICBmb3IgbiBpbiByYW5nZShhdHRlbXB0cyk6CiAgICAgICAgaWYgY2hhcmdlKHBheW1lbnQpOgogICAgICAgICAgICByZXR1cm4gVHJ1ZQogICAgcmV0dXJuIEZhbHNlCg==",
+  "content_sha256": "x",
+  "ref": "main",
+  "blob_id": "b1",
+  "commit_id": "c1",
+  "last_commit_id": "abc1234def5678"
+}

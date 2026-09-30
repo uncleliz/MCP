@@ -1,0 +1,154 @@
+# Bộ câu hỏi eval Phase 1 — Journey 1 (Dev tra cứu tài liệu + code), T-029.
+#
+# Phục vụ: FR-003/AC-001 (có citation từ CẢ HAI nguồn), FR-003/AC-002 (một nguồn rỗng thì
+# phải nói rõ), FR-015/AC-001..002, NFR-003 (đo tỉ lệ câu trả lời có citation hợp lệ).
+#
+# LƯU Ý QUAN TRỌNG: `confluence_query` / `gitlab_query` là từ khoá MẪU. Chúng chưa được kiểm
+# chứng trên tenant thật (container của squad không có Confluence/GitLab). Trước khi chạy
+# thật, người review phải thay bằng từ khoá khớp nội dung thật của tenant, giữ nguyên
+# `expected_sources` / `expect_empty`. Các câu `expect_empty` dùng chuỗi vô nghĩa
+# (`zzqx-...`) nên chắc chắn rỗng trên mọi tenant.
+#
+# Trường:
+#   id                  mã câu hỏi (duy nhất)
+#   question            câu hỏi dạng người dùng hỏi Claude (tiếng Việt)
+#   covers              AC/NFR mà câu này kiểm
+#   confluence_query    từ khoá gửi tới confluence_search_pages
+#   gitlab_query        từ khoá gửi tới gitlab_search_code (>= 2 ký tự)
+#   expected_sources    các nguồn PHẢI xuất hiện trong mục "Nguồn" của câu trả lời cuối
+#   expect_empty        các nguồn dự kiến trả status=empty (câu trả lời phải nêu rõ không có dữ liệu)
+#   expected_behavior   mô tả hành vi đúng của Claude, dùng để người review chấm tay
+version: 1
+journey: 1
+phase: 1
+questions:
+  - id: Q-J1-001
+    question: "Module thanh toán xử lý retry khi giao dịch thất bại như thế nào?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "payment retry"
+    gitlab_query: "retry"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Tổng hợp chính sách retry từ tài liệu Confluence và cách triển khai trong code GitLab;
+      mục "Nguồn" có ít nhất một URL Confluence và một URL GitLab.
+
+  - id: Q-J1-002
+    question: "Quy trình deploy service thanh toán lên production gồm những bước nào?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "deploy production runbook"
+    gitlab_query: "deploy"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Nêu các bước từ runbook Confluence và đối chiếu với pipeline/script deploy trong GitLab,
+      kèm citation cả hai nguồn.
+
+  - id: Q-J1-003
+    question: "Service nào gọi API tính phí hoa hồng và tài liệu thiết kế của nó ở đâu?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "commission fee design"
+    gitlab_query: "commission"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Chỉ ra nơi gọi API trong code (link file/dòng GitLab) và trang thiết kế (URL Confluence).
+
+  - id: Q-J1-004
+    question: "Cơ chế xác thực giữa các service nội bộ hoạt động ra sao?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "service authentication"
+    gitlab_query: "authenticate"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Giải thích cơ chế từ tài liệu và trỏ tới đoạn code xác thực; không tiết lộ secret nào
+      xuất hiện trong nguồn (meta.redactions > 0 thì phải nói nội dung đã bị che).
+
+  - id: Q-J1-005
+    question: "Cấu hình timeout mặc định của client gọi ngân hàng đối tác là bao nhiêu?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "partner bank timeout"
+    gitlab_query: "timeout"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Trả giá trị cụ thể kèm citation file cấu hình GitLab và trang tài liệu giải thích.
+
+  - id: Q-J1-006
+    question: "Lịch sử thay đổi gần đây của logic đối soát giao dịch là gì?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "reconciliation"
+    gitlab_query: "reconcile"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Kết hợp trang tài liệu đối soát với commit/MR gần đây (gitlab_list_commits hoặc
+      gitlab_list_merge_requests) và trích dẫn link web của chúng.
+
+  - id: Q-J1-007
+    question: "Có pipeline nào đang fail ở nhánh main của service thanh toán không và nguyên nhân là gì?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "ci pipeline troubleshooting"
+    gitlab_query: "pipeline"
+    expected_sources: [gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Dùng gitlab_list_pipelines / gitlab_get_pipeline, trích dẫn link pipeline; Confluence là
+      tuỳ chọn cho hướng dẫn xử lý lỗi CI.
+
+  - id: Q-J1-008
+    question: "Hướng dẫn onboarding cho dev mới của team thanh toán nằm ở đâu?"
+    covers: [FR-003/AC-001, FR-015/AC-001]
+    confluence_query: "onboarding"
+    gitlab_query: "README"
+    expected_sources: [confluence, gitlab]
+    expect_empty: []
+    expected_behavior: >-
+      Trỏ tới trang onboarding Confluence và README/CONTRIBUTING trong repo, kèm citation.
+
+  # ---- Case một nguồn rỗng (FR-003/AC-002) ------------------------------------------
+  - id: Q-J1-009
+    question: "Tài liệu zzqx-khong-ton-tai-7781 được cài đặt trong code như thế nào?"
+    covers: [FR-003/AC-002, FR-015/AC-002]
+    confluence_query: "zzqx-khong-ton-tai-7781"
+    gitlab_query: "retry"
+    expected_sources: [gitlab]
+    expect_empty: [confluence]
+    expected_behavior: >-
+      Confluence trả status=empty: câu trả lời PHẢI nêu rõ "không tìm thấy tài liệu Confluence
+      cho zzqx-khong-ton-tai-7781", KHÔNG bịa citation Confluence; phần code GitLab vẫn có
+      citation.
+
+  - id: Q-J1-010
+    question: "Tài liệu nói gì về tính năng zzqx-chua-tung-code-4490 và code đã hiện thực chưa?"
+    covers: [FR-003/AC-002, FR-015/AC-002]
+    confluence_query: "payment retry"
+    gitlab_query: "zzqx-chua-tung-code-4490"
+    expected_sources: [confluence]
+    expect_empty: [gitlab]
+    expected_behavior: >-
+      GitLab trả status=empty: câu trả lời phải nêu rõ không tìm thấy code GitLab khớp, không
+      bịa đường dẫn file; phần tài liệu Confluence vẫn có citation.
+
+  - id: Q-J1-011
+    question: "Hãy giải thích quy trình zzqx-khong-ton-tai-9912 ở cả tài liệu lẫn code."
+    covers: [FR-003/AC-002, FR-015/AC-002]
+    confluence_query: "zzqx-khong-ton-tai-9912"
+    gitlab_query: "zzqx-khong-ton-tai-9912"
+    expected_sources: []
+    expect_empty: [confluence, gitlab]
+    expected_behavior: >-
+      Cả hai nguồn rỗng: câu trả lời phải nói rõ không có dữ liệu ở cả Confluence và GitLab
+      và không được bịa nội dung hay citation.
+
+  - id: Q-J1-012
+    question: "Trang Confluence có id 000000 nói gì?"
+    covers: [FR-001/AC-002, FR-015/AC-002]
+    confluence_query: "zzqx-khong-ton-tai-0000"
+    gitlab_query: "zzqx-khong-ton-tai-0000"
+    expected_sources: []
+    expect_empty: [confluence, gitlab]
+    expected_behavior: >-
+      Nếu gọi confluence_get_page với id không tồn tại sẽ nhận status=not_found; Claude phải
+      nói trang không tồn tại thay vì suy đoán nội dung.

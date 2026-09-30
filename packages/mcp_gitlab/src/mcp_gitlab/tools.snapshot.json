@@ -1,0 +1,781 @@
+{
+  "gitlab_get_file": {
+    "description": "Đọc nội dung một file tại một ref, đã redaction và cắt theo max_bytes. Path khớp deny-glob (.env, *.pem, ...) bị từ chối với not_permitted.",
+    "inputSchema": {
+      "properties": {
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        },
+        "ref": {
+          "default": "HEAD",
+          "description": "Branch, tag hoặc commit; HEAD = default branch.",
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project",
+        "path"
+      ],
+      "title": "gitlab_get_fileArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_get_issue": {
+    "description": "Lấy chi tiết một issue, kèm các note (mặc định bật).",
+    "inputSchema": {
+      "properties": {
+        "iid": {
+          "description": "IID dạng string.",
+          "pattern": "^[0-9]{1,12}$",
+          "title": "Iid",
+          "type": "string"
+        },
+        "include_notes": {
+          "default": true,
+          "title": "Include Notes",
+          "type": "boolean"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        }
+      },
+      "required": [
+        "project",
+        "iid"
+      ],
+      "title": "gitlab_get_issueArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_get_merge_request": {
+    "description": "Lấy chi tiết một merge request, kèm diff các file thay đổi và tuỳ chọn các note. Diff của file khớp deny-glob không được trả về.",
+    "inputSchema": {
+      "properties": {
+        "iid": {
+          "description": "IID dạng string.",
+          "pattern": "^[0-9]{1,12}$",
+          "title": "Iid",
+          "type": "string"
+        },
+        "include_changes": {
+          "default": true,
+          "title": "Include Changes",
+          "type": "boolean"
+        },
+        "include_notes": {
+          "default": false,
+          "title": "Include Notes",
+          "type": "boolean"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        }
+      },
+      "required": [
+        "project",
+        "iid"
+      ],
+      "title": "gitlab_get_merge_requestArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_get_pipeline": {
+    "description": "Lấy chi tiết một pipeline kèm các job. Tuỳ chọn trả phần cuối trace của tối đa 3 job bị fail.",
+    "inputSchema": {
+      "properties": {
+        "include_failed_job_trace": {
+          "default": false,
+          "title": "Include Failed Job Trace",
+          "type": "boolean"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "pipeline_id": {
+          "pattern": "^[0-9]{1,18}$",
+          "title": "Pipeline Id",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        }
+      },
+      "required": [
+        "project",
+        "pipeline_id"
+      ],
+      "title": "gitlab_get_pipelineArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_list_commits": {
+    "description": "Liệt kê commit của một project, lọc theo ref, path và khoảng thời gian.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        },
+        "ref": {
+          "default": "HEAD",
+          "description": "Branch, tag hoặc commit; HEAD = default branch.",
+          "title": "Ref",
+          "type": "string"
+        },
+        "since": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Since"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Until"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "title": "gitlab_list_commitsArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_list_issues": {
+    "description": "Liệt kê issue theo project hoặc toàn instance, lọc theo trạng thái, label, assignee.",
+    "inputSchema": {
+      "properties": {
+        "assignee_username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assignee Username"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "labels": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Labels",
+          "type": "array"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "path_with_namespace hoặc id; null = toàn instance.",
+          "title": "Project"
+        },
+        "search": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Search"
+        },
+        "state": {
+          "default": "all",
+          "enum": [
+            "opened",
+            "closed",
+            "all"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "updated_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated After"
+        }
+      },
+      "title": "gitlab_list_issuesArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_list_merge_requests": {
+    "description": "Liệt kê merge request theo project hoặc toàn instance, lọc theo trạng thái, tác giả, nhánh, label. Chỉ đọc.",
+    "inputSchema": {
+      "properties": {
+        "author_username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Author Username"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "labels": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Labels",
+          "type": "array"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "path_with_namespace hoặc id; null = toàn instance.",
+          "title": "Project"
+        },
+        "search": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Search"
+        },
+        "state": {
+          "default": "all",
+          "enum": [
+            "opened",
+            "closed",
+            "merged",
+            "locked",
+            "all"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "target_branch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Branch"
+        },
+        "updated_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated After"
+        }
+      },
+      "title": "gitlab_list_merge_requestsArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_list_pipelines": {
+    "description": "Liệt kê pipeline của một project, lọc theo ref, trạng thái và thời điểm cập nhật.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "created",
+                "waiting_for_resource",
+                "preparing",
+                "pending",
+                "running",
+                "success",
+                "failed",
+                "canceled",
+                "skipped",
+                "manual",
+                "scheduled"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "updated_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated After"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "title": "gitlab_list_pipelinesArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_list_repository_tree": {
+    "description": "Liệt kê file và thư mục của một path tại một ref.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "path": {
+          "default": "",
+          "title": "Path",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "path_with_namespace hoặc id (dạng string).",
+          "title": "Project"
+        },
+        "recursive": {
+          "default": false,
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "ref": {
+          "default": "HEAD",
+          "description": "Branch, tag hoặc commit; HEAD = default branch.",
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "title": "gitlab_list_repository_treeArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_search_code": {
+    "description": "Tìm code (blob) trong một project hoặc toàn instance, lọc tuỳ chọn theo ref và tên file. Kết quả có link web tới đúng file/dòng. File khớp deny-glob bị loại.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "filename_filter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ví dụ `*.py`.",
+          "title": "Filename Filter"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "path_with_namespace hoặc id; null = toàn instance.",
+          "title": "Project"
+        },
+        "query": {
+          "maxLength": 512,
+          "minLength": 2,
+          "title": "Query",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Branch/tag; mặc định default branch.",
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "gitlab_search_codeArguments",
+      "type": "object"
+    }
+  },
+  "gitlab_search_projects": {
+    "description": "Tìm project GitLab theo tên hoặc path, sắp theo hoạt động gần nhất.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "membership_only": {
+          "default": false,
+          "title": "Membership Only",
+          "type": "boolean"
+        },
+        "query": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "gitlab_search_projectsArguments",
+      "type": "object"
+    }
+  }
+}

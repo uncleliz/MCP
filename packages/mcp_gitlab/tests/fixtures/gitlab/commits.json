@@ -1,0 +1,22 @@
+[
+  {
+    "id": "abc1234def5678abc1234def5678abc1234def56",
+    "short_id": "abc1234",
+    "title": "Fix retry backoff",
+    "message": "Fix retry backoff\n\nUse exponential delay.\n",
+    "author_name": "Dana Nguyen",
+    "authored_date": "2026-09-19T09:00:00.000Z",
+    "committed_date": "2026-09-19T09:05:00.000Z",
+    "web_url": "https://gitlab.example.test/team/payment-service/-/commit/abc1234def5678abc1234def5678abc1234def56"
+  },
+  {
+    "id": "111222333444555666777888999000aaabbbccc1",
+    "short_id": "1112223",
+    "title": "Add ledger hook",
+    "message": "Add ledger hook",
+    "author_name": "Lee",
+    "authored_date": "2026-09-18T09:00:00.000Z",
+    "committed_date": "2026-09-18T09:00:00.000Z",
+    "web_url": "https://gitlab.example.test/team/payment-service/-/commit/111222333444555666777888999000aaabbbccc1"
+  }
+]
