@@ -4,8 +4,16 @@
   "tier": "large",
   "stage": "backend",
   "stale": [],
-  "loops": { "qa": 0, "review": 0, "spec": 0 },
-  "gates": { "A": "approved", "B": "approved", "C": "pending" },
+  "loops": {
+    "qa": 0,
+    "review": 0,
+    "spec": 0
+  },
+  "gates": {
+    "A": "approved",
+    "B": "approved",
+    "C": "pending"
+  },
   "decisions": {
     "layout": "packages/ (uv workspace, no backend/ or frontend/) — confirmed at Gate B 2026-10-01",
     "confluence_flavor": "Cloud — confirmed at Gate B 2026-10-01"
@@ -70,6 +78,17 @@
       "stage": "backend",
       "result": "stopped_by_user",
       "note": "User asked to stop and save state to resume from a cloud session. Killed the still-running Setup-batch agent (task a07d90e4827797ad3, ~41min in) via TaskStop; it was mid-way writing a secondary doc (docs/claude-usage/README.md) when killed. Verified on disk before stopping further work: packages/mcp_common/src has all 11 modules (config, logging, errors, envelope, render, http, readonly, runtime, content, redact, testing, cli) with 179 tests collected (pytest --collect-only, not run to green). Also present: root pyproject.toml, uv.lock, .python-version, .env.example, Makefile, ruff.toml, infra/ (compose), ci/, scripts/. Everything is UNTRACKED in git (not committed). NOT yet verified: which of T-001..T-016 are individually complete vs partial, whether tests actually pass (only collected, not run), whether mcp_ingest package was created, exact contents of docs/ beyond adr+squad. On resume: re-dispatch squad-backend for the Setup batch with instructions to first audit what already exists on disk against T-001..T-016 before writing anything new, then continue; do not assume batch 1 is done."
+    },
+    {
+      "at": "2026-09-30T23:59:00+07:00",
+      "stage": "backend",
+      "result": "resumed",
+      "note": "Resumed in cloud session on branch claude/zealous-johnson-yb3t2q; prior work already committed as 4b04291. Re-dispatching squad-backend for Setup batch T-001..T-016 audit-first. docs/claude-usage/ absent on disk; packages/mcp_ingest absent."
     }
-  ]
+  ],
+  "base_ref": "0f5c20e",
+  "files_changed": {
+    "backend": [],
+    "frontend": []
+  }
 }
