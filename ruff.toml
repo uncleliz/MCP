@@ -1,0 +1,23 @@
+# Ruff config for the whole uv workspace (packages/*).
+# R2 (architecture.md): stdout is the JSON-RPC transport channel for MCP stdio servers —
+# any stray print() corrupts the session. The T20 (flake8-print) rule below turns that
+# into a lint failure instead of a runtime incident.
+target-version = "py312"
+line-length = 100
+src = ["packages"]
+extend-exclude = ["*.snapshot.json"]
+
+[lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "UP",  # pyupgrade
+  "B",   # bugbear
+  "T20", # flake8-print — bans print()/pprint() (R2, stdout guard)
+]
+ignore = []
+
+[lint.per-file-ignores]
+# Dev-only scripts are allowed to print to stdout (they are not MCP servers).
+"scripts/*" = ["T20"]

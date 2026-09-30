@@ -1,0 +1,51 @@
+[project]
+name = "mcp-data-platform-workspace"
+version = "0.0.0"
+description = "uv workspace root for the MCP Data Platform (packages/* are the real projects)"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5.0",
+  "coverage[toml]>=7.6",
+  "respx>=0.21",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "check-jsonschema>=0.29",
+  "openapi-spec-validator>=0.7",
+  "pyyaml>=6.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["packages"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "*/tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["packages"]
+ignore_missing_imports = true
+exclude = ["tests"]

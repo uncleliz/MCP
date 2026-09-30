@@ -1,0 +1,18 @@
+[project]
+name = "mcp-kibana"
+version = "0.1.0"
+description = "Placeholder workspace member for mcp-kibana (implemented in Phase 1/2/3, not in the Setup batch)."
+requires-python = ">=3.12"
+dependencies = [
+  "mcp-common",
+]
+
+[tool.uv.sources]
+mcp-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_kibana"]

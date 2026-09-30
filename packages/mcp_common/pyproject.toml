@@ -1,0 +1,39 @@
+[project]
+name = "mcp-common"
+version = "0.1.0"
+description = "Shared library for all MCP Data Platform servers (config, http, envelope, readonly guard, redaction, runtime)."
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "httpx>=0.27",
+  "tenacity>=9.0",
+  # ADR-0002 names the `FastMCP` class explicitly; `mcp` 2.x renamed it to `MCPServer`
+  # and changed other APIs (see its own ModuleNotFoundError migration message). Pin
+  # to the 1.x line so mcp_common.runtime can build on FastMCP as ADR-0002 specifies;
+  # revisit as an explicit ADR amendment if/when the squad wants to move to 2.x.
+  "mcp<2",
+  # mcp_common.testing (T-014) is a shared *test-support* submodule other packages'
+  # test suites import (assert_readonly_tool_surface, readonly_respx_router, ...) —
+  # pytest/respx must therefore be real dependencies of mcp-common itself, not just
+  # workspace-level dev deps, so any package depending on mcp-common can use it.
+  "pytest>=8.3",
+  "respx>=0.21",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "respx>=0.21",
+]
+
+[project.scripts]
+mcp-common = "mcp_common.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_common"]

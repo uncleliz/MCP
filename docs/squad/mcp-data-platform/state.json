@@ -1,0 +1,75 @@
+{
+  "feature": "mcp-data-platform",
+  "language": "vi",
+  "tier": "large",
+  "stage": "backend",
+  "stale": [],
+  "loops": { "qa": 0, "review": 0, "spec": 0 },
+  "gates": { "A": "approved", "B": "approved", "C": "pending" },
+  "decisions": {
+    "layout": "packages/ (uv workspace, no backend/ or frontend/) — confirmed at Gate B 2026-10-01",
+    "confluence_flavor": "Cloud — confirmed at Gate B 2026-10-01"
+  },
+  "history": [
+    {
+      "at": "2026-10-01T00:00:00+07:00",
+      "stage": "intake",
+      "result": "done",
+      "note": "tier=large; 9 read-only MCP servers (Confluence, GitLab, OpenSearch, Kibana, CloudWatch, Kafka, Redis, SQS/SNS, Postgres+pgvector incl. ingest/embedding pipeline); local stdio first, no frontend; MVP order: Confluence+GitLab -> observability -> messaging/vector"
+    },
+    {
+      "at": "2026-10-01T00:10:00+07:00",
+      "stage": "po",
+      "result": "done",
+      "note": "product-requirement.md written; Gate A approved by user with no change requests"
+    },
+    {
+      "at": "2026-10-01T00:20:00+07:00",
+      "stage": "ba",
+      "result": "done",
+      "note": "requirements.md written: FR-001..015 (36 AC), NFR-001..005, full traceability to PRD musts; open questions carried forward, non-blocking"
+    },
+    {
+      "at": "2026-10-01T01:12:00+07:00",
+      "stage": "sa",
+      "result": "partial",
+      "note": "1st SA run crashed on rate limit but had already written architecture.md + api-contract.yaml (valid) and all 15 ADRs + design-review amendments; 2nd SA run fixed 5 dangling ADR cross-refs + wrote new ADR-0016 (document visibility/RBAC). uncovered_fr=[]. Found architecture.md stale vs amended ADRs (wrong NFR-002 timeout numbers, missing data model fields, stale CLI list, stale FR-012 diagram, missing ADR-0016 row, empty Design review section) -> not yet advancing to lead, dispatching a reconciliation pass."
+    },
+    {
+      "at": "2026-10-01T02:30:00+07:00",
+      "stage": "sa",
+      "result": "done",
+      "note": "3rd SA run reconciled architecture.md against all 29 surviving design-review amendments (across ADR-0003,0006,0007,0008,0009,0011,0012,0015) + ADR-0016; fixed timeouts, data model, CLI list, FR-012/FR-011 flows, ADR table, reconstructed Design review section. api-contract.yaml and ADRs untouched. uncovered_fr=[]. needs_user_decision carried to Gate B: packages/ vs backend/ layout (BLOCKING for backend dispatch), Kafka client (confluent-kafka vs kafka-python), embedding provider/model, Confluence Cloud vs Server/DC, ADR-0016 RBAC-in-Phase-3, NFR-002/003/004 thresholds + prune retention default. Minor non-blocking ADR text nits left as-is (ADR-0006 A2 stale table row, ADR-0011 A2 heading/body mismatch)."
+    },
+    {
+      "at": "2026-10-01T03:40:00+07:00",
+      "stage": "lead",
+      "result": "done",
+      "note": "implementation-plan.md written: 86 tasks, all Owner=BE (no FE), layout follows architecture.md's packages/ structure. uncovered_ac=[]. Gate B reached: awaiting user decision on packages/ vs backend/ layout (blocking any backend dispatch) and Confluence Cloud vs Server/DC (blocks Phase 1 Confluence tasks, no spike resolves it); Kafka client/embedding model/RBAC scope/NFR thresholds deferred to spikes S2/S4/S5 and PO follow-up, not blocking Gate B."
+    },
+    {
+      "at": "2026-10-01T04:00:00+07:00",
+      "stage": "lead",
+      "result": "gate_b_approved",
+      "note": "User approved implementation-plan.md as-is. Decisions locked: layout=packages/ (CLAUDE.md updated with a project-specific override note outside the squad-init managed block); confluence_flavor=Cloud. Kafka client/embedding model/RBAC scope/NFR thresholds still open, to be resolved by spikes S2/S4/S5 and PO during implementation."
+    },
+    {
+      "at": "2026-10-01T04:20:00+07:00",
+      "stage": "qa-plan",
+      "result": "done",
+      "note": "test-plan.md + test-cases.md written: 74 TC (TC-001..074), 37/37 AC covered, no blocking issues. TBD thresholds (S2/S4/ADR-0016/NFR-002-4/prune retention) marked with explicit TBD/conditional test cases (TC-028,062,065,067,071-074), not invented numbers."
+    },
+    {
+      "at": "2026-10-01T04:25:00+07:00",
+      "stage": "backend",
+      "result": "in_progress",
+      "note": "Backend stage started. Batching squad-backend dispatches by task group (Setup, then Phase1, Phase2, Phase3) rather than all 86 tasks at once, to bound agent scope/output and follow the approved MVP order. Batch 1 dispatched: T-001..T-016 (Setup: uv workspace, mcp_common's 10 modules, compose infra, config-emit)."
+    },
+    {
+      "at": "2026-10-01T05:10:00+07:00",
+      "stage": "backend",
+      "result": "stopped_by_user",
+      "note": "User asked to stop and save state to resume from a cloud session. Killed the still-running Setup-batch agent (task a07d90e4827797ad3, ~41min in) via TaskStop; it was mid-way writing a secondary doc (docs/claude-usage/README.md) when killed. Verified on disk before stopping further work: packages/mcp_common/src has all 11 modules (config, logging, errors, envelope, render, http, readonly, runtime, content, redact, testing, cli) with 179 tests collected (pytest --collect-only, not run to green). Also present: root pyproject.toml, uv.lock, .python-version, .env.example, Makefile, ruff.toml, infra/ (compose), ci/, scripts/. Everything is UNTRACKED in git (not committed). NOT yet verified: which of T-001..T-016 are individually complete vs partial, whether tests actually pass (only collected, not run), whether mcp_ingest package was created, exact contents of docs/ beyond adr+squad. On resume: re-dispatch squad-backend for the Setup batch with instructions to first audit what already exists on disk against T-001..T-016 before writing anything new, then continue; do not assume batch 1 is done."
+    }
+  ]
+}

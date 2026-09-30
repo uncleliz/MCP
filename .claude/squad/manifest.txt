@@ -1,0 +1,9 @@
+.claude/agents/squad-ba.md
+.claude/agents/squad-backend.md
+.claude/agents/squad-frontend.md
+.claude/agents/squad-lead.md
+.claude/agents/squad-po.md
+.claude/agents/squad-qa.md
+.claude/agents/squad-reviewer.md
+.claude/agents/squad-sa.md
+.claude/skills/squad/SKILL.md

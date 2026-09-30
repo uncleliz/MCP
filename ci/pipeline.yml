@@ -1,0 +1,48 @@
+# T-003: local/CI pipeline description for the MCP Data Platform uv workspace.
+#
+# This file documents the 5 verification steps `make ci` runs locally (no CI runner is
+# wired up in this repo yet; ADR-0013 notes no spectral/redocly OpenAPI linter is
+# available on dev machines either, hence scripts/validate_contract.py). Written as a
+# GitHub Actions workflow shape so it can be dropped into `.github/workflows/` verbatim
+# once a runner is provisioned.
+
+name: mcp-data-platform-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Sync workspace
+        run: uv sync --all-packages
+
+      # Step 1/5 — lint (includes the print()-ban rule, R2)
+      - name: Lint (ruff)
+        run: make lint
+
+      # Step 2/5 — type check
+      - name: Typecheck (mypy)
+        run: make typecheck
+
+      # Step 3/5 — unit test + coverage gate (80%, R11 for mcp_common)
+      - name: Unit tests + coverage
+        run: make coverage
+
+      # Step 4/5 — contract validation (ADR-0013)
+      - name: Validate api-contract.yaml
+        run: make validate-contract
+
+      # Step 5/5 — read-only suite of every package (NFR-001, ADR-0003)
+      - name: Read-only test suite (all packages)
+        run: make readonly
