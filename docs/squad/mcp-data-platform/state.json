@@ -84,11 +84,23 @@
       "stage": "backend",
       "result": "resumed",
       "note": "Resumed in cloud session on branch claude/zealous-johnson-yb3t2q; prior work already committed as 4b04291. Re-dispatching squad-backend for Setup batch T-001..T-016 audit-first. docs/claude-usage/ absent on disk; packages/mcp_ingest absent."
+    },
+    {
+      "at": "2026-10-01T00:10:00+07:00",
+      "stage": "backend",
+      "result": "batch_done",
+      "note": "Setup batch T-001..T-016 done: 193 tests pass, mcp_common coverage 93.8%, make ci green (verified by orchestrator). Open: T-001 S1 reachability table needs a real run on a dev machine with VPN; T-015 docker compose up not verified live (no daemon); infra/dev-setup.md location deviates from plan (docs/dev-setup.md); ruff format --check reports 9 files (not in ci). Next: Phase 1 batch T-017..T-031 (Confluence Cloud + GitLab)."
     }
   ],
   "base_ref": "0f5c20e",
   "files_changed": {
-    "backend": [],
+    "backend": [
+      "scripts/probe_reachability.py",
+      "docs/spikes/S1-reachability.md",
+      "docs/claude-usage/README.md",
+      "packages/mcp_common/tests/test_cli.py",
+      "packages/mcp_common/tests/test_probe_reachability.py"
+    ],
     "frontend": []
   }
 }
