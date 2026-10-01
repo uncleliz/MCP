@@ -17,7 +17,9 @@
   "decisions": {
     "layout": "packages/ (uv workspace, no backend/ or frontend/) — confirmed at Gate B 2026-10-01",
     "confluence_flavor": "Cloud — confirmed at Gate B 2026-10-01",
-    "kafka_client": "confluent-kafka>=2.15,<3 — spike S4 (docs/spikes/S4-kafka-client.md); ADR-0009 status update to accepted pending SA"
+    "kafka_client": "confluent-kafka>=2.15,<3 — spike S4 (docs/spikes/S4-kafka-client.md); ADR-0009 status update to accepted pending SA",
+    "rbac_phase3": "Corpus team-only (ADR-0016 Part 2, option 'no restricted'): mcp-ingest rejects visibility != 'team' into kb.ingest_failures (T-073); T-067 closed as not applicable — user decision 2026-10-01",
+    "embedding_model": "Deferred to spike S2 (T-054) per user 2026-10-01"
   },
   "history": [
     {
@@ -103,6 +105,12 @@
       "stage": "backend",
       "result": "batch_done",
       "note": "Phase 2 batch T-032..T-053 done (OpenSearch 6, Kibana 3, CloudWatch 7 + incident_investigation prompt, Kafka 5, Redis 4 tools). 1317 passed, 9 live skipped; coverage 96%; make ci green (verified by orchestrator). S4 -> confluent-kafka. mcp_common fixes: BoundedExecutor slot release (R16), redact JSON-key secrets. T-053 manual sign-off pending (VPN/creds). Spec drift to reconcile (QA/SA): Kibana build_dashboard_link does 1 GET (contract) vs TC-019 no network; find_saved_objects empty vs TC-020 not_found; search_dsl default off -> 24 not 25 phase-2 tools; DSL aggs has no response slot; Redis db>0 needs +select in ACL. Next: Phase 3 T-054..T-086 — needs ADR-0016 RBAC/visibility answer from user before dispatch."
+    },
+    {
+      "at": "2026-10-01T02:10:00+07:00",
+      "stage": "backend",
+      "result": "decision",
+      "note": "User answered: kb corpus team-only (no RBAC in Phase 3, T-067 closed, T-073 rejects restricted); embedding model chosen by spike S2. Dispatching Phase 3a: T-054..T-065 (spikes S2/S5, migrations, embedding port, SQS/SNS, pgvector server)."
     }
   ],
   "base_ref": "0f5c20e",
