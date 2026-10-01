@@ -3,10 +3,7 @@
   "language": "vi",
   "tier": "large",
   "stage": "backend",
-  "stale": [
-    "lead",
-    "qa-plan"
-  ],
+  "stale": [],
   "loops": {
     "qa": 0,
     "review": 0,
@@ -128,6 +125,12 @@
       "stage": "sa",
       "result": "done",
       "note": "SA reconciled 13 contract_issue items: contract quoting fixes, GitLabProjectRef/Scope split, Kibana behaviour kept per contract, DSL surface 48/49, Redis +select, kb_list_sources origin uri, MCP_INGEST_ADMIN_DSN, ADR-0009 accepted, ADR-0010 provisional bge-m3, ADR-0016 accepted team-only + S5 rules. Contract valid, 1779 tests pass, snapshots unchanged. Code change: Redis ACL +select (+ db=1 test). Downstream stale: lead (T-039/T-015 text), qa-plan (TC-018/019/020/054/072/073 + new cases). Next: lead + qa-plan doc updates in parallel with backend Phase 3b (disjoint files; Phase 3b tasks unaffected)."
+    },
+    {
+      "at": "2026-10-01T04:00:00+07:00",
+      "stage": "lead",
+      "result": "done",
+      "note": "Stale re-runs done: lead updated T-015/016/036/039/051/053/054/055/056/067(closed)/068/073/085, uncovered_ac=[]; qa-plan 77 TC (TC-072 closed, TC-075..077 added), 37/37 AC; SA fixed invalid_argument→invalid_input prose (code already invalid_input). Open nit: TC-076 text still says invalid_argument (QA at qa-verify). Backend Phase 3b still running."
     }
   ],
   "base_ref": "0f5c20e",
