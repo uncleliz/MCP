@@ -96,13 +96,15 @@ def _flatten_nullable(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
-def _constraints(schema: dict[str, Any]) -> dict[str, Any]:
+def _constraints(schema: dict[str, Any], contract: dict[str, Any] | None = None) -> dict[str, Any]:
     flat = _flatten_nullable(schema)
     found = {key: flat[key] for key in _CONSTRAINT_KEYS if key in flat}
     if "enum" in found:
         found["enum"] = sorted(v for v in found["enum"] if v is not None)
     if flat.get("type") == "array" and "items" in flat:
-        item_constraints = _constraints(flat["items"])
+        # `items: {$ref: '#/components/schemas/SourceType'}` must compare by its resolved enum.
+        items = _resolve(contract, flat["items"]) if contract is not None else flat["items"]
+        item_constraints = _constraints(items, contract)
         if item_constraints:
             found["items"] = item_constraints
     return found
@@ -139,7 +141,7 @@ def assert_snapshot_matches_contract(
                 f"{sorted(contract_schema.get('required', []))}"
             )
         for prop, c_def in c_props.items():
-            want = _constraints(_resolve(contract, c_def))
+            want = _constraints(_resolve(contract, c_def), contract)
             got = _constraints(s_props[prop])
             if want != got:
                 problems.append(f"{name}.{prop}: constraints {got} != contract {want}")

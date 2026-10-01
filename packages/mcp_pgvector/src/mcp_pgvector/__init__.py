@@ -1,9 +1,8 @@
-"""Placeholder for mcp-pgvector.
+"""mcp-pgvector: read-only MCP server for semantic search over the kb embedding store (FR-011).
 
-This package is an empty workspace member scaffolded before SA's design.
-Its real implementation (settings/client/read_api/tools/server/cli) is built
-by the Phase 1/2/3 task batch per architecture.md, not by the Setup batch
-(T-001..T-016) that created this placeholder.
+Connects as the read-only role `mcp_query_ro`, runs every query in `BEGIN READ ONLY` and exposes
+no tool that accepts SQL. Refuses to start with a write-capable DSN or an embedding model that
+differs from the stored data.
 """
 
 __version__ = "0.1.0"

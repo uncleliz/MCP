@@ -2,12 +2,12 @@
   "feature": "mcp-data-platform",
   "language": "vi",
   "tier": "large",
-  "stage": "backend",
+  "stage": "sa",
   "stale": [],
   "loops": {
     "qa": 0,
     "review": 0,
-    "spec": 0
+    "spec": 1
   },
   "gates": {
     "A": "approved",
@@ -19,7 +19,7 @@
     "confluence_flavor": "Cloud — confirmed at Gate B 2026-10-01",
     "kafka_client": "confluent-kafka>=2.15,<3 — spike S4 (docs/spikes/S4-kafka-client.md); ADR-0009 status update to accepted pending SA",
     "rbac_phase3": "Corpus team-only (ADR-0016 Part 2, option 'no restricted'): mcp-ingest rejects visibility != 'team' into kb.ingest_failures (T-073); T-067 closed as not applicable — user decision 2026-10-01",
-    "embedding_model": "Deferred to spike S2 (T-054) per user 2026-10-01"
+    "embedding_model": "PROVISIONAL BAAI/bge-m3 — S2 harness built but not measured (huggingface.co blocked by egress 403); ADR-0010 stays proposed until a real bake-off"
   },
   "history": [
     {
@@ -111,6 +111,12 @@
       "stage": "backend",
       "result": "decision",
       "note": "User answered: kb corpus team-only (no RBAC in Phase 3, T-067 closed, T-073 rejects restricted); embedding model chosen by spike S2. Dispatching Phase 3a: T-054..T-065 (spikes S2/S5, migrations, embedding port, SQS/SNS, pgvector server)."
+    },
+    {
+      "at": "2026-10-01T03:00:00+07:00",
+      "stage": "backend",
+      "result": "batch_done",
+      "note": "Phase 3a T-054..T-065 done (T-067 closed). 1779 passed, 11 skipped; coverage 95.8%; make ci green (verified by orchestrator). S2 unmeasured (HF blocked) -> provisional bge-m3. S5 default-deny visibility rules. Real local Postgres16+pgvector 0.6 used for DB tests; moto for SQS/SNS. contract_issue raised -> routing to sa (loops.spec=1) to reconcile contract/ADRs with accumulated issues from phases 1-3a before Phase 3b."
     }
   ],
   "base_ref": "0f5c20e",
@@ -307,7 +313,61 @@
       "packages/mcp_redis/tests/test_read_api.py",
       "packages/mcp_redis/tests/test_settings_cli.py",
       "packages/mcp_redis/tests/test_timeout_budget.py",
-      "packages/mcp_redis/tests/test_tools_readonly.py"
+      "packages/mcp_redis/tests/test_tools_readonly.py",
+      "infra/dev-setup.md",
+      "packages/mcp_pgvector/pyproject.toml",
+      "packages/mcp_pgvector/src/mcp_pgvector/__init__.py",
+      "packages/mcp_pgvector/tests/__init__.py",
+      "packages/mcp_sqs_sns/pyproject.toml",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/__init__.py",
+      "packages/mcp_sqs_sns/tests/__init__.py",
+      "docs/spikes/S2-embedding-bakeoff.md",
+      "docs/spikes/S5-visibility-source-id.md",
+      "eval/embedding_bakeoff.sample.yaml",
+      "packages/mcp_ingest/",
+      "packages/mcp_pgvector/src/mcp_pgvector/__main__.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/cli.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/client.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/prompts.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/read_api.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/server.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/settings.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/sql.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/tools.py",
+      "packages/mcp_pgvector/src/mcp_pgvector/tools.snapshot.json",
+      "packages/mcp_pgvector/tests/conftest.py",
+      "packages/mcp_pgvector/tests/pg_helpers.py",
+      "packages/mcp_pgvector/tests/test_client.py",
+      "packages/mcp_pgvector/tests/test_contract.py",
+      "packages/mcp_pgvector/tests/test_db_integration.py",
+      "packages/mcp_pgvector/tests/test_integration.py",
+      "packages/mcp_pgvector/tests/test_prompts.py",
+      "packages/mcp_pgvector/tests/test_read_api.py",
+      "packages/mcp_pgvector/tests/test_settings_cli.py",
+      "packages/mcp_pgvector/tests/test_sql_readonly.py",
+      "packages/mcp_pgvector/tests/test_timeout_budget.py",
+      "packages/mcp_pgvector/tests/test_tools_readonly.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/__main__.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/cli.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/client.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/mappers.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/read_api.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/server.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/settings.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/tools.py",
+      "packages/mcp_sqs_sns/src/mcp_sqs_sns/tools.snapshot.json",
+      "packages/mcp_sqs_sns/tests/conftest.py",
+      "packages/mcp_sqs_sns/tests/sqs_helpers.py",
+      "packages/mcp_sqs_sns/tests/test_client.py",
+      "packages/mcp_sqs_sns/tests/test_contract.py",
+      "packages/mcp_sqs_sns/tests/test_integration.py",
+      "packages/mcp_sqs_sns/tests/test_mappers.py",
+      "packages/mcp_sqs_sns/tests/test_moto_integration.py",
+      "packages/mcp_sqs_sns/tests/test_read_api.py",
+      "packages/mcp_sqs_sns/tests/test_settings_cli.py",
+      "packages/mcp_sqs_sns/tests/test_timeout_budget.py",
+      "packages/mcp_sqs_sns/tests/test_tools_readonly.py",
+      "scripts/bakeoff_embedding.py"
     ],
     "frontend": []
   }

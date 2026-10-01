@@ -14,7 +14,8 @@ test:
 
 coverage:
 	uv run pytest --cov=mcp_common --cov=mcp_confluence --cov=mcp_gitlab --cov=mcp_opensearch \
-		--cov=mcp_kibana --cov=mcp_cloudwatch --cov=mcp_kafka --cov=mcp_redis --cov-report=term-missing
+		--cov=mcp_kibana --cov=mcp_cloudwatch --cov=mcp_kafka --cov=mcp_redis \
+		--cov=mcp_sqs_sns --cov=mcp_pgvector --cov=mcp_ingest --cov-report=term-missing
 
 validate-contract:
 	uv run python scripts/validate_contract.py docs/squad/mcp-data-platform/api-contract.yaml

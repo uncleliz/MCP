@@ -1,9 +1,7 @@
-"""Placeholder for mcp-sqs-sns.
+"""mcp-sqs-sns: read-only MCP server for AWS SQS/SNS metadata (FR-010).
 
-This package is an empty workspace member scaffolded before SA's design.
-Its real implementation is built by the Phase 3 task batch per
-architecture.md, not by the Setup batch (T-001..T-016) that created this
-placeholder.
+Deliberately has NO tool that reads message content: `sqs:ReceiveMessage` changes the
+visibility timeout (a side effect), so it is excluded by design (BR-001, ADR-0003 layer 4).
 """
 
 __version__ = "0.1.0"

@@ -32,14 +32,33 @@ docker compose -f infra/docker-compose.yml down -v   # -v also drops the postgre
 
 ## Verifying each service
 
-**Postgres + pgvector**
+**Postgres + pgvector** (schema `kb`, Phase 3)
 
 ```bash
 docker compose -f infra/docker-compose.yml exec postgres \
   psql -U mcp_admin -d mcp_kb -c "SELECT extname FROM pg_extension;"
-# pgvector image ships with the extension available; T-011/0001_extensions.sql (Phase 3)
-# is what actually runs `CREATE EXTENSION vector`.
+
+# Apply the numbered migrations 0001-0006 (idempotent; re-running applies nothing):
+MCP_INGEST_ADMIN_DSN=postgresql://mcp_admin:mcp_admin_dev_password@localhost:5432/mcp_kb \
+  uv run mcp-ingest db upgrade            # add --dry-run / --json as needed
+
+# 0005_roles.sql creates the roles WITHOUT passwords (never commit one). Set them once, out of
+# band, then put the DSNs in your environment (see .env.example):
+docker compose -f infra/docker-compose.yml exec postgres psql -U mcp_admin -d mcp_kb \
+  -c "ALTER ROLE mcp_query_ro PASSWORD 'choose-a-dev-password'" \
+  -c "ALTER ROLE mcp_ingest_rw PASSWORD 'choose-another-dev-password'"
+
+uv run mcp-pgvector doctor                # MCP_PGVECTOR_DSN must be the mcp_query_ro DSN
 ```
+
+`mcp-pgvector` refuses to serve with the `mcp_ingest_rw` (or a superuser) DSN, and when the
+configured embedding model differs from the one stored in `kb.chunks`.
+
+*Without Docker:* the Postgres/pgvector tests start a throw-away cluster themselves
+(`initdb`/`pg_ctl` from the distro packages, `apt install postgresql postgresql-16-pgvector`; see
+`packages/conftest.py`). The distro pgvector may be older than 0.8 (no `hnsw.iterative_scan`); the
+server then uses the documented over-fetch fallback and says so in `doctor`. SQS/SNS tests use an
+in-process AWS emulator (moto) instead of LocalStack.
 
 **Redis — `mcp_ro` ACL user (ADR-0008 A1)**
 

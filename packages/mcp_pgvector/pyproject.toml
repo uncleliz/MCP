@@ -1,14 +1,26 @@
 [project]
 name = "mcp-pgvector"
 version = "0.1.0"
-description = "Placeholder workspace member for mcp-pgvector (implemented in Phase 1/2/3, not in the Setup batch)."
+description = "Read-only MCP server for semantic search over the kb embedding store (Phase 3, FR-011)."
 requires-python = ">=3.12"
 dependencies = [
   "mcp-common",
+  # Only `mcp_ingest.ports` and `mcp_ingest.embedding` are imported (R19): the embedding stack
+  # never imports psycopg or the ingest write path (enforced by mcp_ingest's import-boundary test).
+  "mcp-ingest",
+  "psycopg[binary]>=3.2,<4",
+  "pgvector>=0.3",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
 ]
+
+[project.scripts]
+mcp-pgvector = "mcp_pgvector.cli:main"
 
 [tool.uv.sources]
 mcp-common = { workspace = true }
+mcp-ingest = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,48 @@
+# SAMPLE dataset for scripts/bakeoff_embedding.py (spike S2 / T-054) — SYNTHETIC.
+#
+# It only proves the harness runs end to end (and gives the fake provider something to rank).
+# It is NOT decision-grade: the real bake-off must use a corpus exported from the team's own
+# Confluence/GitLab and queries taken from the NFR-003 question set (eval/questions.yaml) —
+# see docs/spikes/S2-embedding-bakeoff.md "Procedure". Copy this file to
+# eval/embedding_bakeoff.yaml (git-ignored if it contains internal text) and replace the
+# content, keeping the schema:
+#   corpus:  [{id, text}]                 documents (or chunks) to embed
+#   queries: [{id, text, relevant: [id]}] ground truth: which corpus ids answer the query
+version: 1
+synthetic: true
+corpus:
+  - id: d01
+    text: "Chính sách retry thanh toán: thử lại tối đa 3 lần với backoff luỹ thừa trước khi chuyển sang dead-letter queue."
+  - id: d02
+    text: "Payment worker retries failed transactions up to three times using exponential backoff, then publishes the message to the DLQ."
+  - id: d03
+    text: "Runbook deploy production: kiểm tra pipeline xanh, tạo tag release, chạy job deploy và theo dõi dashboard trong 15 phút."
+  - id: d04
+    text: "Production deploy runbook: verify the pipeline is green, cut a release tag, run the deploy job and watch the dashboards for 15 minutes."
+  - id: d05
+    text: "Kafka consumer group bị lag cao thường do consumer xử lý chậm hoặc rebalance liên tục; kiểm tra số partition và thời gian xử lý mỗi message."
+  - id: d06
+    text: "High Kafka consumer lag is usually caused by slow processing or repeated rebalances; check partition count and per-message processing time."
+  - id: d07
+    text: "Cách đọc alarm CloudWatch ApproximateAgeOfOldestMessage để biết queue SQS đang bị nghẽn."
+  - id: d08
+    text: "Redis cache của session hết hạn sau 30 phút; key có tiền tố session: và TTL được đặt khi đăng nhập."
+  - id: d09
+    text: "Quy trình onboarding nhân viên mới: cấp tài khoản, thêm vào nhóm GitLab, hướng dẫn cài đặt môi trường phát triển."
+  - id: d10
+    text: "Postmortem sự cố thanh toán ngày 12/09: nguyên nhân là timeout tới cổng thanh toán, khắc phục bằng tăng timeout và circuit breaker."
+  - id: d11
+    text: "Incident review for the 12 September payment outage: root cause was a gateway timeout, fixed by raising the timeout and adding a circuit breaker."
+  - id: d12
+    text: "Hướng dẫn cấu hình OpenSearch index lifecycle policy để rollover log hằng ngày và xoá sau 30 ngày."
+queries:
+  - { id: q01, text: "Giao dịch thanh toán thất bại được thử lại mấy lần?", relevant: [d01, d02] }
+  - { id: q02, text: "How many times does the payment worker retry?", relevant: [d02, d01] }
+  - { id: q03, text: "Các bước deploy lên production", relevant: [d03, d04] }
+  - { id: q04, text: "steps to deploy to production", relevant: [d04, d03] }
+  - { id: q05, text: "Vì sao consumer group bị lag?", relevant: [d05, d06] }
+  - { id: q06, text: "why is the kafka consumer lagging", relevant: [d06, d05] }
+  - { id: q07, text: "queue SQS bị nghẽn thì xem alarm nào", relevant: [d07] }
+  - { id: q08, text: "session cache hết hạn bao lâu", relevant: [d08] }
+  - { id: q09, text: "nguyên nhân sự cố thanh toán 12/09", relevant: [d10, d11] }
+  - { id: q10, text: "log index rollover hằng ngày cấu hình thế nào", relevant: [d12] }
