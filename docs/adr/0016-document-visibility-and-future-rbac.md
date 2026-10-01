@@ -1,7 +1,7 @@
 # ADR-0016: Cột `visibility` và đường mở sang RBAC per-user khi chuyển remote
 
 **Date**: 2026-10-01
-**Status**: proposed — **cần PO/user quyết** (Open question 3); không implement ở v1
+**Status**: accepted (2026-10-01) — user chọn **corpus TEAM-ONLY** (Phần 2, nhánh "không chứa `restricted`"); không có RBAC per-user ở v1. Xem Amendments A1–A3
 **Deciders**: SA (squad-sa) đề xuất; PO + SA quyết theo BR-003
 
 ## Context
@@ -83,5 +83,56 @@ từ "env của process" sang "per-request" (ADR-0002 đã cam kết không ch�
 - Quy tắc suy ra `visibility` cho từng connector **chưa được định nghĩa** (Confluence space
   permission, GitLab project visibility + member role). Là đầu ra của spike Phase 3, cùng với
   quy tắc dựng `source_id` đã nêu ở ADR-0012 A5.
-- ADR này chưa có trong bảng ADR của `architecture.md` (bảng đó có 15 dòng) — cần thêm dòng
-  thứ 16 khi architecture.md được cập nhật lần tới.
+- ~~ADR này chưa có trong bảng ADR của `architecture.md`~~ — đã có dòng 16 (reconcile 2026-10-01).
+- ~~Cần PO quyết Phần 2~~ — đã quyết (A1). ~~Quy tắc suy ra `visibility` chưa định nghĩa~~ — đã
+  định nghĩa (A2).
+
+## Amendments (quyết định user + spike S5, 2026-10-01)
+
+### A1 — Phần 2 đã quyết: corpus `kb` là TEAM-ONLY
+User quyết ngày 2026-10-01: corpus `kb` **chỉ** chứa nội dung cả team đọc được. Hệ quả:
+- **Không có RBAC per-user ở Phase 3.** Task T-067 (RBAC per-user) **đóng — không áp dụng**.
+- `mcp-ingest` **từ chối** mọi document có `visibility != 'team'` ở stage `redact` (T-073): ghi
+  `kb.ingest_failures{stage: redact, code: blocked_by_policy}`, document không bao giờ vào
+  `kb.chunks`. Giả định BR-003 trở thành ràng buộc kiểm chứng được:
+  `SELECT count(*) FROM kb.documents WHERE visibility <> 'team' AND deleted_at IS NULL` phải = 0.
+- Cột `visibility` (Phần 1) giữ nguyên — vẫn là đường mở sang RBAC khi chuyển remote (BR-004/C4),
+  khi đó RBAC là yêu cầu thật như đoạn cuối của Decision.
+
+### A2 — Quy tắc suy ra `visibility`: **default-deny** (spike S5)
+Nguồn: [`docs/spikes/S5-visibility-source-id.md`](../spikes/S5-visibility-source-id.md);
+code thuần `packages/mcp_ingest/src/mcp_ingest/identity.py` + test. Nguyên tắc: chỉ gắn `team`
+khi **chứng minh được** cả team đọc được; không xác định được, API lỗi, thiếu quyền đọc metadata,
+giá trị lạ ⇒ `restricted` (⇒ bị từ chối theo A1).
+- **Confluence (Cloud)** — `team` khi **tất cả**: space thuộc allowlist
+  `MCP_INGEST_CONFLUENCE_TEAM_SPACES` (rỗng mặc định ⇒ không gì là team); `space.type == global`
+  (không `personal`); page **không** có read-restriction; **không tổ tiên nào** có
+  read-restriction (restriction thừa kế). Không xác định được restriction ⇒ `restricted`.
+- **GitLab** — issue/MR `confidential` ⇒ `restricted`; feature access level liên quan
+  (`repository_access_level` / `issues_access_level` / `merge_requests_access_level`) khác
+  `enabled` ⇒ `restricted`; `public` ⇒ `team`; `internal` ⇒ `team` trừ khi
+  `MCP_INGEST_GITLAB_INTERNAL_IS_TEAM=false`; `private` ⇒ `team` **chỉ khi** project thuộc
+  `MCP_INGEST_GITLAB_TEAM_PROJECTS` (khớp theo segment path) **và** token crawl ≥ Reporter;
+  còn lại / giá trị lạ ⇒ `restricted`.
+- **OpenSearch** (connector mặc định tắt, ADR-0012 A5) — `team` chỉ cho alias nằm trong
+  `MCP_INGEST_OPENSEARCH_INDICES`; mọi thứ khác `restricted` và không được crawl.
+- Nhãn được **tính lại ở mọi run cho mọi document đã thấy, kể cả khi hash-skip** (là metadata,
+  như citation metadata ở ADR-0012 A4). Document đang có trong `kb` mà nhãn mới là `restricted`
+  (hoặc space/project bị gỡ khỏi allowlist) ⇒ **xoá chunk + tombstone trong cùng transaction** và
+  ghi `ingest_failures{redact, blocked_by_policy}`; không được chỉ "bỏ qua lần này" (T-073/T-075).
+- Khuyến nghị vận hành: tài khoản/token crawl là **thành viên thường** của team (không admin),
+  để một nhãn sai cũng không kéo về được nội dung team vốn không đọc được (phòng thủ chiều sâu).
+- Quy tắc `source_id` ổn định (Confluence `page.id`; GitLab `<project_id>:blob|mr|issue:…`;
+  OpenSearch `<alias>:<_id>`) cũng chốt ở S5 — đóng phần còn mở của ADR-0012 A5.
+- Chưa kiểm chứng trên hệ thật (S1: nguồn không tới được từ container); hình dạng API phải được
+  xác nhận bằng test `@pytest.mark.live` (T-070/T-071/T-072).
+
+### A3 — Rủi ro tồn dư được chấp nhận có ý thức
+`visibility` là **ảnh chụp lúc crawl**. Với Confluence, đặt read-restriction lên một page
+**không chắc đổi `lastModified`**, nên incremental run không thấy: một page **bị đặt restriction
+mà không đổi nội dung vẫn nằm trong `kb` và vẫn trả được qua `kb_semantic_search` cho tới lần
+full reconcile kế tiếp** (≤ chu kỳ reconcile; ứng viên 24h). GitLab được kiểm project-level mỗi
+run nên cửa sổ này nhỏ hơn nhiều. Giảm thiểu: (a) chu kỳ full reconcile Confluence theo mức PO
+chấp nhận (Open question 5); (b) lệnh vận hành xoá theo `source_id`/`prune` khi được báo (T-081);
+(c) token crawl quyền thấp (A2) để phạm vi rò chỉ là nội dung team vốn đọc được. PO cần xác nhận
+chấp nhận cửa sổ này cùng danh sách allowlist space/project (follow-up, không chặn code).

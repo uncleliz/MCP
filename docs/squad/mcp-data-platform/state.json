@@ -2,8 +2,11 @@
   "feature": "mcp-data-platform",
   "language": "vi",
   "tier": "large",
-  "stage": "sa",
-  "stale": [],
+  "stage": "backend",
+  "stale": [
+    "lead",
+    "qa-plan"
+  ],
   "loops": {
     "qa": 0,
     "review": 0,
@@ -19,7 +22,9 @@
     "confluence_flavor": "Cloud — confirmed at Gate B 2026-10-01",
     "kafka_client": "confluent-kafka>=2.15,<3 — spike S4 (docs/spikes/S4-kafka-client.md); ADR-0009 status update to accepted pending SA",
     "rbac_phase3": "Corpus team-only (ADR-0016 Part 2, option 'no restricted'): mcp-ingest rejects visibility != 'team' into kb.ingest_failures (T-073); T-067 closed as not applicable — user decision 2026-10-01",
-    "embedding_model": "PROVISIONAL BAAI/bge-m3 — S2 harness built but not measured (huggingface.co blocked by egress 403); ADR-0010 stays proposed until a real bake-off"
+    "embedding_model": "PROVISIONAL BAAI/bge-m3 — S2 harness built but not measured (huggingface.co blocked by egress 403); ADR-0010 stays proposed until a real bake-off",
+    "redis_acl": "add +select to mcp_ro ACL (ADR-0008 A5); SELECT not in tool allowlist",
+    "default_tool_surface": "48 tools default (49 with MCP_OPENSEARCH_ALLOW_DSL=true) — ADR-0008 A7"
   },
   "history": [
     {
@@ -117,6 +122,12 @@
       "stage": "backend",
       "result": "batch_done",
       "note": "Phase 3a T-054..T-065 done (T-067 closed). 1779 passed, 11 skipped; coverage 95.8%; make ci green (verified by orchestrator). S2 unmeasured (HF blocked) -> provisional bge-m3. S5 default-deny visibility rules. Real local Postgres16+pgvector 0.6 used for DB tests; moto for SQS/SNS. contract_issue raised -> routing to sa (loops.spec=1) to reconcile contract/ADRs with accumulated issues from phases 1-3a before Phase 3b."
+    },
+    {
+      "at": "2026-10-01T03:30:00+07:00",
+      "stage": "sa",
+      "result": "done",
+      "note": "SA reconciled 13 contract_issue items: contract quoting fixes, GitLabProjectRef/Scope split, Kibana behaviour kept per contract, DSL surface 48/49, Redis +select, kb_list_sources origin uri, MCP_INGEST_ADMIN_DSN, ADR-0009 accepted, ADR-0010 provisional bge-m3, ADR-0016 accepted team-only + S5 rules. Contract valid, 1779 tests pass, snapshots unchanged. Code change: Redis ACL +select (+ db=1 test). Downstream stale: lead (T-039/T-015 text), qa-plan (TC-018/019/020/054/072/073 + new cases). Next: lead + qa-plan doc updates in parallel with backend Phase 3b (disjoint files; Phase 3b tasks unaffected)."
     }
   ],
   "base_ref": "0f5c20e",

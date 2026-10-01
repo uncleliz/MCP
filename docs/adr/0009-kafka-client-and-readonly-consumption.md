@@ -1,7 +1,7 @@
 # ADR-0009: Kafka client + giao thức tiêu thụ read-only
 
 **Date**: 2026-10-01
-**Status**: proposed — **cần user xác nhận ở Gate B** (lựa chọn client library)
+**Status**: accepted (2026-10-01) — `confluent-kafka>=2.15,<3`, theo spike S4 ([`docs/spikes/S4-kafka-client.md`](../spikes/S4-kafka-client.md))
 **Deciders**: SA (squad-sa) đề xuất; PO/user quyết
 
 ## Context
@@ -12,7 +12,7 @@ client Python: `confluent-kafka` (binding librdkafka), `kafka-python`, `aiokafka
 Yêu cầu kỹ thuật quyết định: cần `AdminClient` để lấy topic config, partition, watermark và
 `list_consumer_group_offsets` (tính lag) — không phải client nào cũng có đủ.
 
-## Decision (đề xuất)
+## Decision
 
 Dùng **`confluent-kafka`** với giao thức read-only sau:
 
@@ -98,3 +98,20 @@ Ghi chú về trạng thái: ADR này vẫn **proposed** — spike S4 (đầu Ph
 `confluent-kafka` hay `kafka-python`. Cả ba amendment trên áp dụng cho **cả hai** lựa chọn;
 `kafka-python` có tham số tương đương (`allow_auto_create_topics=False`) nhưng phải kiểm lại
 vì mặc định của nó là `True`.
+
+## Amendments (chốt sau spike S4, 2026-10-01)
+
+### A4 — Accepted với `confluent-kafka`; ghi chú từ S4
+- Spike S4 (T-032) chốt **`confluent-kafka>=2.15,<3`** (đo bản 2.15.1 / librdkafka 2.15.1, wheel
+  nhị phân manylinux, không cần build). `kafka-python` giữ làm phương án dự phòng sau port
+  `KafkaReader` (`mcp_kafka/ports.py`); đổi client không chạm `read_api.py`/`tools.py`.
+- `metadata.request.timeout.ms` **deprecated / "Not used"** trong librdkafka 2.15. Vẫn đặt 8000
+  cho đúng A3, nhưng ràng buộc thật là `socket.timeout.ms=8000` **cộng tham số `timeout` của
+  từng call** (`list_topics`, `request_timeout` của Admin call, `get_watermark_offsets`) — tất cả
+  phải nằm trong budget 21s của ADR-0006 A2.
+- `confluent_kafka.Producer` luôn import được ⇒ bảo đảm "không Producer" là **test quét AST mã
+  nguồn**, không dựa vào việc không cài.
+- Lý do phụ loại `kafka-python`: mặc định `allow_auto_create_topics=True` và
+  `request_timeout_ms=30000` — dễ phá R17/NFR-002.
+- Rủi ro còn lại: S4 không có broker; hành vi trên broker thật (TC-025, TC-027, describe/list
+  group offsets) do test `@pytest.mark.live` của T-048 xác nhận.

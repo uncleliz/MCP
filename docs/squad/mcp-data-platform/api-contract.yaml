@@ -236,7 +236,7 @@ paths:
       x-mcp-server: mcp-confluence
       x-readonly: true
       x-side-effects: none
-      x-upstream: "GET /rest/api/content/{id}?expand=body.export_view,version,space"
+      x-upstream: "GET /rest/api/content/{id}?expand=body.storage,space,version,metadata.labels (body.export_view is forbidden, ADR-0007 A1)"
       requestBody:
         required: true
         content:
@@ -510,7 +510,7 @@ paths:
               required: [query]
               properties:
                 query: { type: string, minLength: 2, maxLength: 512 }
-                project: { $ref: '#/components/schemas/GitLabProjectRef' }
+                project: { $ref: '#/components/schemas/GitLabProjectScope' }
                 ref: { type: [string, "null"], default: null, description: Branch/tag; mặc định là default branch. }
                 filename_filter: { type: [string, "null"], default: null, description: "Ví dụ `*.py`." }
                 limit: { $ref: '#/components/schemas/LimitField' }
@@ -648,7 +648,7 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                project: { $ref: '#/components/schemas/GitLabProjectRef' }
+                project: { $ref: '#/components/schemas/GitLabProjectScope' }
                 search: { type: [string, "null"], maxLength: 256, default: null }
                 state: { type: string, enum: [opened, closed, merged, locked, all], default: all }
                 author_username: { type: [string, "null"], default: null }
@@ -721,7 +721,7 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                project: { $ref: '#/components/schemas/GitLabProjectRef' }
+                project: { $ref: '#/components/schemas/GitLabProjectScope' }
                 search: { type: [string, "null"], maxLength: 256, default: null }
                 state: { type: string, enum: [opened, closed, all], default: all }
                 labels:
@@ -1063,8 +1063,20 @@ paths:
           `bucket_script`, `bucket_selector`, `_script`, `runtime_mappings`, `id`
           (stored script/template), hoặc `terms.<field>.index` (terms-lookup — đọc index khác
           `index_pattern`, thoát khỏi phạm vi index).
-        * `size`/`from` bị ép ≤ `limit`; `from + size ≤ 1000` (chặn deep paging).
-        * Client đặt `search.allow_expensive_queries=false` ở request level khi cluster hỗ trợ.
+        * Phân trang (reconciled 2026-10-01): `body.size` ∈ 0..100 và `body.from` ∈ 0..900
+          (ngoài khoảng → `invalid_argument`); `size` mặc định = `limit` và nếu `size > limit`
+          thì bị **kẹp** xuống `limit` kèm `meta.warnings`; `from + size ≤ 1000` (chặn deep
+          paging → `invalid_argument`, gợi ý `search_after`). `from` KHÔNG bị ép ≤ `limit`.
+        * Client đặt `timeout=<timeout_s>s` trong body gửi đi (timeout phía cluster).
+          `search.allow_expensive_queries` là **cluster setting** (không có tham số
+          per-request) nên không phải guardrail của tool này; nếu cần, người vận hành đặt nó ở
+          cluster/role — guardrail thực sự là deny-list đệ quy ở trên.
+        * `aggs` được chấp nhận để giữ tương thích query DSL, nhưng **kết quả aggregation
+          không được trả** (response chỉ có document hits, schema `OpenSearchDocumentList`);
+          khi upstream trả `aggregations`, tool thêm `meta.warnings` hướng dẫn dùng
+          `opensearch_aggregate`.
+        * Bề mặt tool mặc định: khi flag tắt, `mcp-opensearch` hiển thị **5** tool (Phase 2 = 24
+          tool, toàn hệ = 48 tool); bật flag → 6 / 25 / 49.
       x-requirements: [FR-004, FR-009]
       x-acceptance-criteria: [FR-004/AC-001, FR-004/AC-002, FR-014/AC-001]
       x-phase: 2
@@ -1077,7 +1089,8 @@ paths:
         - "endpoint=_search only; scroll/PIT/profile/search_template/indices_boost bị cấm"
         - "top-level allowlist bằng additionalProperties:false"
         - "duyệt ĐỆ QUY deny: script|script_score|script_fields|scripted_metric|bucket_script|bucket_selector|_script|runtime_mappings|id|terms.*.index"
-        - "size,from <= limit; from+size <= 1000"
+        - "size in 0..100 (clamped to limit, warning); from in 0..900; from+size <= 1000"
+        - "aggs accepted but aggregation results are not returned (warning -> use opensearch_aggregate)"
       x-upstream: "POST /{index}/_search"
       requestBody:
         required: true
@@ -1143,7 +1156,10 @@ paths:
       description: |
         Dùng `GET /api/saved_objects/_find` (chỉ đọc; không dùng endpoint POST nên không cần
         `kbn-xsrf`). Trả metadata + URL Kibana làm citation.
-        `status=empty` khi không có object nào khớp (FR-005 AC-002).
+        `status=empty` khi không có object nào khớp (FR-005 AC-002) — đây là kết quả "not
+        found" tường minh mà AC-002 yêu cầu, theo quy ước `ResultStatus` (tìm kiếm không khớp
+        = `empty`; `not_found` chỉ dành cho một định danh cụ thể như `kibana_get_saved_object`
+        / `kibana_build_dashboard_link` với id không tồn tại). Reconciled 2026-10-01.
       x-requirements: [FR-005, FR-009]
       x-acceptance-criteria: [FR-005/AC-001, FR-005/AC-002]
       x-phase: 2
@@ -1212,6 +1228,7 @@ paths:
       summary: Dựng deep link tới dashboard với đúng khung thời gian (và filter tuỳ chọn).
       description: |
         Link được dựng hoàn toàn phía client (thuần hàm); server thực hiện **đúng một** GET
+        (quyết định giữ lại khi reconcile 2026-10-01: chống trích dẫn dashboard id bịa — FR-015)
         `/api/saved_objects/dashboard/{id}` chỉ để xác minh dashboard tồn tại và lấy `title` —
         `status=not_found` đến từ chính request đó. Trả URL có
         `_g=(time:(from:…,to:…))` — đây là citation mà on-call mở được đúng cửa sổ sự cố
@@ -2167,6 +2184,13 @@ paths:
         `last_run_status` và `embedding_model` cho từng nguồn. Đây là cơ chế để Claude **tuyên
         bố độ mới** của dữ liệu semantic thay vì mặc định coi là mới (NFR-004) và để biết
         nguồn nào chưa được index (FR-013 AC-002).
+
+        Citation (reconciled 2026-10-01, giữ bất biến 6): mỗi item có một citation với
+        `uri` = **origin** (`scheme://host/`) của `source_uri` của một document còn sống
+        (`deleted_at IS NULL`) thuộc nguồn đó, `locator = {source_type}`. Nguồn **không có
+        document sống nào** (chưa index, hoặc mọi document đã bị tombstone) hoặc không có
+        `source_uri` http(s) **không** xuất hiện trong `items` mà được báo trong
+        `meta.warnings` (vẫn tường minh cho FR-013 AC-002). Không nguồn nào có item → `status=empty`.
       x-requirements: [FR-011, FR-012, FR-013]
       x-acceptance-criteria: [FR-011/AC-001, FR-012/AC-001, FR-013/AC-002]
       x-phase: 3
@@ -2214,7 +2238,7 @@ paths:
       x-mcp-server: none
       x-readonly: false
       x-writes: kb
-      x-side-effects: "DDL trên schema kb (role mcp_ingest_rw)"
+      x-side-effects: "DDL trên schema kb + CREATE EXTENSION vector/pgcrypto + CREATE ROLE mcp_ingest_rw/mcp_query_ro — chạy bằng MCP_INGEST_ADMIN_DSN (role có quyền DDL/CREATEROLE; fallback MCP_INGEST_PGVECTOR_DSN nếu chính role đó được cấp quyền DDL). Không bao giờ chạy bằng mcp_query_ro. ADR-0011 A6."
       requestBody:
         required: false
         content:
@@ -2305,7 +2329,7 @@ paths:
                   default: all
                   description: v1 hỗ trợ 3 connector; thêm connector là thay đổi minor (thêm enum value).
                 mode: { type: string, enum: [incremental, full], default: incremental }
-                since: { type: [string, "null"], format: date-time, default: null, description: Bỏ qua checkpoint, crawl từ mốc này. }
+                since: { type: [string, "null"], format: date-time, default: null, description: "Bỏ qua checkpoint, crawl từ mốc này." }
                 limit: { type: [integer, "null"], minimum: 1, default: null, description: Giới hạn số document mỗi nguồn (dùng khi test). }
                 retry_failed: { type: boolean, default: false, description: Xử lý lại các document trong `kb.ingest_failures` trước khi crawl theo checkpoint. }
                 dry_run: { type: boolean, default: false, description: Crawl + chunk + hash nhưng KHÔNG embed và KHÔNG ghi DB. }
@@ -2890,12 +2914,21 @@ components:
         name: { type: string, maxLength: 255 }
         value: { type: string, maxLength: 1024 }
     GitLabProjectRef:
+      type: string
+      maxLength: 512
+      description: |
+        Project **bắt buộc** cho các tool chi tiết (`gitlab_get_file`, `gitlab_list_repository_tree`,
+        `gitlab_list_commits`, `gitlab_get_merge_request`, `gitlab_get_issue`, `gitlab_list_pipelines`,
+        `gitlab_get_pipeline`): `path_with_namespace` (khuyến nghị, ví dụ `team/payment-service`)
+        hoặc numeric id dạng **string**. Không có default; `null` không hợp lệ (→ `invalid_argument`).
+    GitLabProjectScope:
       type: [string, "null"]
       maxLength: 512
       default: null
       description: |
-        `path_with_namespace` (khuyến nghị, ví dụ `team/payment-service`) hoặc numeric id
-        dạng **string**. `null` = toàn instance (chỉ hợp lệ với các tool có hỗ trợ).
+        Phạm vi project **tuỳ chọn** cho các tool tìm/liệt kê toàn instance (`gitlab_search_code`,
+        `gitlab_list_merge_requests`, `gitlab_list_issues`): `path_with_namespace` hoặc numeric id
+        dạng string; `null` (mặc định) = toàn instance trong phạm vi token.
 
     # =======================================================================
     # ITEM SCHEMAS — Confluence (FR-001)
@@ -2968,7 +3001,7 @@ components:
         path: { type: string }
         ref: { type: string }
         start_line: { type: [integer, "null"], minimum: 1 }
-        excerpt: { type: [string, "null"], description: Đoạn code khớp, đã redaction. }
+        excerpt: { type: [string, "null"], description: "Đoạn code khớp, đã redaction." }
         web_url: { type: string, format: uri, description: Link tới đúng file/dòng — citation. }
         citation_ref: { type: integer, minimum: 0 }
     GitLabFile:
@@ -2980,7 +3013,7 @@ components:
         path: { type: string }
         ref: { type: string }
         size_bytes: { type: [integer, "null"], minimum: 0 }
-        content: { type: string, description: Đã decode, chuẩn hoá, redaction và bọc untrusted-content. }
+        content: { type: string, description: "Đã decode, chuẩn hoá, redaction và bọc untrusted-content." }
         truncated: { type: boolean, default: false }
         last_commit_id: { type: [string, "null"] }
         web_url: { type: string, format: uri }
@@ -3018,7 +3051,7 @@ components:
         id: { type: string }
         author: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
-        system: { type: boolean, default: false, description: Note do hệ thống sinh (đổi label, assign…). }
+        system: { type: boolean, default: false, description: "Note do hệ thống sinh (đổi label, assign…)." }
         body: { type: string, description: Đã redaction + bọc untrusted-content. }
     GitLabChangedFile:
       type: object
@@ -3030,7 +3063,7 @@ components:
         new_file: { type: boolean, default: false }
         deleted_file: { type: boolean, default: false }
         renamed_file: { type: boolean, default: false }
-        diff_excerpt: { type: [string, "null"], description: Diff bị cắt theo `max_bytes`, đã redaction. }
+        diff_excerpt: { type: [string, "null"], description: "Diff bị cắt theo `max_bytes`, đã redaction." }
         truncated: { type: boolean, default: false }
     GitLabMergeRequest:
       type: object
@@ -3135,7 +3168,7 @@ components:
         health: { type: [string, "null"], enum: [green, yellow, red, null] }
         status: { type: [string, "null"], enum: [open, close, null] }
         docs_count: { type: [integer, "null"], minimum: 0 }
-        store_size: { type: [string, "null"], description: Dạng người đọc, ví dụ "4.2gb". }
+        store_size: { type: [string, "null"], description: 'Dạng người đọc, ví dụ "4.2gb".' }
         creation_date: { type: [string, "null"], format: date-time }
         citation_ref: { type: integer, minimum: 0 }
     OpenSearchMapping:
@@ -3183,7 +3216,7 @@ components:
       additionalProperties: false
       required: [key, doc_count, citation_ref]
       properties:
-        key: { type: string, description: Giá trị term, hoặc mốc thời gian ISO với `date_histogram`. }
+        key: { type: string, description: "Giá trị term, hoặc mốc thời gian ISO với `date_histogram`." }
         doc_count: { type: integer, minimum: 0 }
         citation_ref: { type: integer, minimum: 0 }
 
@@ -3391,7 +3424,7 @@ components:
         timestamp: { type: [string, "null"], format: date-time }
         timestamp_type: { type: [string, "null"], enum: [create_time, log_append_time, not_available, null] }
         key: { type: [string, "null"] }
-        value: { type: [string, "null"], description: Đã decode theo `value_format`, redaction và bọc untrusted-content. }
+        value: { type: [string, "null"], description: "Đã decode theo `value_format`, redaction và bọc untrusted-content." }
         value_format: { type: string, enum: [json, utf8, base64, none] }
         headers:
           type: object
@@ -3621,7 +3654,7 @@ components:
         document_id: { type: string, format: uuid }
         chunk_index: { type: integer, minimum: 0 }
         similarity: { type: number, minimum: 0, maximum: 1, description: "`1 - cosine_distance`." }
-        content: { type: string, description: Đã cắt theo `max_chars_per_chunk`, redaction, bọc untrusted-content. }
+        content: { type: string, description: "Đã cắt theo `max_chars_per_chunk`, redaction, bọc untrusted-content." }
         heading_path: { type: [string, "null"], description: Đường dẫn heading trong document — giúp citation chỉ đúng mục. }
         source_type: { $ref: '#/components/schemas/SourceType' }
         source_id: { type: string }
@@ -3648,7 +3681,7 @@ components:
         source_updated_at: { type: [string, "null"], format: date-time }
         ingested_at: { type: [string, "null"], format: date-time }
         chunk_count: { type: integer, minimum: 0 }
-        content: { type: string, description: Các chunk ghép theo `chunk_index`, cắt theo `max_chars`. }
+        content: { type: string, description: "Các chunk ghép theo `chunk_index`, cắt theo `max_chars`." }
         truncated: { type: boolean, default: false }
         citation_ref: { type: integer, minimum: 0 }
     KbSourceStat:
@@ -5166,8 +5199,8 @@ components:
                   - { source_type: confluence, document_count: 320, chunk_count: 1841, last_ingested_at: "2026-10-01T03:07:00Z", last_success_at: "2026-10-01T03:07:00Z", staleness_hours: 2.9, last_run_status: success, embedding_model: "BAAI/bge-m3", citation_ref: 0 }
                   - { source_type: gitlab, document_count: 1204, chunk_count: 8930, last_ingested_at: "2026-09-30T03:04:00Z", last_success_at: "2026-09-30T03:04:00Z", staleness_hours: 26.9, last_run_status: failed, embedding_model: "BAAI/bge-m3", citation_ref: 1 }
                 citations:
-                  - { source_type: confluence, label: "kb: confluence — 320 docs, cập nhật 2026-10-01T03:07Z", uri: null, locator: { source_type: confluence } }
-                  - { source_type: gitlab, label: "kb: gitlab — 1204 docs, cập nhật 2026-09-30T03:04Z (26.9h)", uri: null, locator: { source_type: gitlab } }
+                  - { source_type: confluence, label: "kb: confluence — 320 docs, cập nhật 2026-10-01T03:07Z", uri: "https://wiki.example.com/", locator: { source_type: confluence } }
+                  - { source_type: gitlab, label: "kb: gitlab — 1204 docs, cập nhật 2026-09-30T03:04Z (26.9h)", uri: "https://gitlab.example.com/", locator: { source_type: gitlab } }
                 meta:
                   source: pgvector
                   returned: 2

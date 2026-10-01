@@ -106,3 +106,52 @@ read-only — cả hai đều không đọc/ghi dữ liệu nghiệp vụ.
   executor mặc định (ADR-0006 A1). Timeout boto3 chốt lại: `connect 3 / read 7 /
   max_attempts 2`.
 - Postgres: `connect_timeout=3`, `statement_timeout=15s`. Redis: connect 2s / read 5s.
+
+## Amendments (reconcile contract_issue từ squad-backend, 2026-10-01)
+
+### A5 — Redis: ACL cấp thêm `+select` (hỗ trợ `db` 0..15 như contract)
+Contract cho `redis_scan_keys`/`redis_get_key`/`redis_key_info` nhận `db` 0..15. `redis-py` mở
+connection tới db > 0 bằng cách gửi `SELECT <db>` trong handshake; ACL A1 không có `+select`
+nên mọi call với `db > 0` trả `forbidden`. **Quyết định: thêm `+select` vào ACL**, không thu
+hẹp contract về db 0.
+
+- `SELECT` chỉ đổi trạng thái của **chính connection** (không ghi dữ liệu, không thuộc
+  `@write`/`@dangerous`), nên không làm yếu NFR-001. Startup check (A3) không coi `+select` là
+  quyền ghi (không nằm trong tập lệnh ghi của `acl_write_grants`).
+- `SELECT` **không** được thêm vào command allowlist mà tool gọi qua `execute_command`: nó chỉ
+  được phát bởi connection factory của client (một connection/pool riêng cho mỗi `db`). Tool
+  không bao giờ tự gửi `SELECT`/`SWAPDB`/`MOVE`.
+- Thu hẹp về db 0 bị loại: phá contract đã qua Gate B (breaking change với một field đã công bố)
+  để tránh một quyền không có rủi ro ghi.
+
+ACL sau sửa (thêm `+select`):
+```
+ACL SETUSER mcp_ro on >… ~* -@all +get +mget +strlen +getrange +type +ttl +pttl +exists +scan
+  +hget +hmget +hgetall +hscan +hlen +lrange +llen +smembers +sscan +scard +zrange +zcard
+  +xrange +xlen +xinfo +object|encoding +memory|usage +dbsize +info +acl|whoami +acl|getuser
+  +select
+```
+Việc code: `infra/redis/users.acl` thêm `+select`; test live/integration cho `db=1`; hint
+`"user ACL cần +select"` trong `client._guard` giữ nguyên (vẫn đúng với ACL cũ của người vận hành).
+
+### A6 — SQS: `sqs:ListQueueTags` thuộc IAM policy read-only
+`sqs_get_queue_attributes{include_tags: true}` gọi `ListQueueTags`. API này đã nằm trong
+allowlist ở bảng Decision và trong `x-upstream` của contract; amendment này chốt rằng nó cũng
+phải có trong **IAM policy read-only** do vận hành cấp (chỉ đọc metadata tag của queue, không
+đọc message, không đổi visibility). Chỉ được gọi khi `include_tags=true`; thiếu quyền ⇒ cả
+call trả `error.code=forbidden` (không bao giờ trả kết quả thiếu tag mà không báo, không bịa tag).
+
+### A7 — OpenSearch `opensearch_search_dsl`: guardrail chốt theo bản đã implement
+- **Feature flag**: `MCP_OPENSEARCH_ALLOW_DSL=false` mặc định ⇒ tool không được đăng ký. Bề mặt
+  mặc định: `mcp-opensearch` 5 tool, Phase 2 = 24 tool, toàn hệ = 48 tool (bật flag: 6/25/49).
+- **Phân trang**: `size` ∈ 0..100, mặc định = `limit`, `size > limit` bị **kẹp** về `limit`
+  (kèm warning); `from` ∈ 0..900 (không bị ép ≤ `limit`); `from + size ≤ 1000`; vượt ⇒
+  `invalid_argument` (gợi ý `search_after`). Câu cũ "`size`/`from` bị ép ≤ `limit`" bị thay.
+- **`search.allow_expensive_queries`**: là **cluster setting**, không có tham số per-request ⇒
+  bỏ khỏi guardrail của tool (câu cũ không implement được). Guardrail thực sự là deny-list đệ
+  quy (A2 + ADR-0003 A3) cộng `timeout` phía cluster đặt từ `timeout_s`. Nếu muốn chặn query
+  đắt ở mức cluster, người vận hành đặt setting đó trên cluster.
+- **`aggs`**: vẫn nằm trong allowlist khoá cấp cao nhất (tương thích DSL) nhưng **kết quả
+  aggregation không được trả** — response chỉ có document hits; khi upstream có
+  `aggregations`, tool thêm `meta.warnings` hướng dẫn dùng `opensearch_aggregate`. Không thêm
+  slot aggregation vào response (tránh mở một kênh trả dữ liệu không có citation theo item).

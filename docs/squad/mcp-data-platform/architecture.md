@@ -5,6 +5,8 @@
 > Tài liệu này đã được **đồng bộ lại với phần "Amendments" của các ADR sau design review
 > 2026-10-01** (ADR-0003, 0006, 0007, 0008, 0009, 0011, 0012, 0015 + ADR-0016 mới). Khi có
 > xung đột, **ADR là bản gốc**.
+> **Reconcile contract_issue (loops.spec=1, 2026-10-01):** 13 vấn đề do `squad-backend` nêu sau
+> Phase 1–3a đã được xử lý — xem "Design review → Reconcile contract_issue từ squad-backend".
 > Ngôn ngữ tài liệu: tiếng Việt (`state.json.language = vi`); mọi identifier, schema, tên
 > tool, DDL và diagram label bằng tiếng Anh.
 
@@ -34,7 +36,7 @@ Postgres+pgvector) và trả lời có trích dẫn truy vết được, thay ch
 
 1. **Read-only là thuộc tính kiến trúc, không phải quy ước code** — 5 lớp phòng ngự có kiểm
    chứng tự động (ADR-0003).
-2. **Một envelope kết quả duy nhất cho 49 tool** — citation bắt buộc, `empty`/`not_found`
+2. **Một envelope kết quả duy nhất cho 49 tool** (48 hiển thị mặc định — `opensearch_search_dsl` sau feature flag) — citation bắt buộc, `empty`/`not_found`
    là *status* chứ không phải exception (ADR-0004). Đây là cơ chế duy nhất khiến C2 kiểm
    chứng được.
 3. **stdio hôm nay, transport-agnostic từ ngày đầu** — logic tool không biết gì về transport
@@ -49,11 +51,12 @@ mình** trên máy của mình → phân quyền được *thừa hưởng nguy�
 crawl bằng `mcp_ingest_rw` và `mcp-pgvector` đọc bằng `mcp_query_ro` — hai credential không
 liên quan gì tới người đang hỏi. Một trang Confluence trong space bị giới hạn, một khi đã
 embed, sẽ trả về cho **bất kỳ ai** chạy `kb_semantic_search`. Vì vậy: cột
-`documents.visibility` được ghi ngay ở Phase 3 (chưa filter), và **PO phải quyết trước khi code
-Phase 3** corpus có được phép chứa nội dung `restricted` hay không (Open question 3,
-ADR-0016 Phần 2 — *proposed*). Nếu "không" thì `mcp-ingest` từ chối ingest
-`visibility != 'team'` và báo qua `kb.ingest_failures`; nếu "có" thì RBAC per-user trở thành
-**must-have của Phase 3**, không phải việc tương lai. Khi mở remote hosting (C4) thì RBAC là
+`documents.visibility` được ghi ngay ở Phase 3 (chưa filter), và **user đã quyết (2026-10-01):
+corpus `kb` là TEAM-ONLY** (ADR-0016 Phần 2 + A1, *accepted*): `mcp-ingest` từ chối ingest
+`visibility != 'team'` và báo qua `kb.ingest_failures{redact, blocked_by_policy}`; nhãn được
+suy ra theo quy tắc **default-deny** của spike S5 (ADR-0016 A2). Không có RBAC per-user ở
+Phase 3 (T-067 đóng). Rủi ro tồn dư: page Confluence bị đặt restriction mà không đổi nội dung
+vẫn tìm được tới full reconcile kế tiếp (ADR-0016 A3). Khi mở remote hosting (C4) thì RBAC là
 yêu cầu thật trong mọi trường hợp.
 
 ## Tech stack decision
@@ -108,7 +111,7 @@ graph TB
     S2["mcp-gitlab<br/>11 tools"]
   end
   subgraph p2["Phase 2"]
-    S3["mcp-opensearch<br/>6 tools"]
+    S3["mcp-opensearch<br/>6 tools (5 mặc định + search_dsl sau flag)"]
     S4["mcp-kibana<br/>3 tools"]
     S5["mcp-cloudwatch<br/>7 tools + prompt incident_investigation"]
     S6["mcp-kafka<br/>5 tools"]
@@ -183,6 +186,10 @@ packages/mcp_<source>/
 
 ### Bề mặt tool đầy đủ (49 tool, 3 prompt, 6 lệnh CLI)
 
+**Bề mặt hiển thị mặc định: 48 tool** — `opensearch_search_dsl` chỉ được đăng ký khi
+`MCP_OPENSEARCH_ALLOW_DSL=true` (ADR-0008 A7). Theo phase: Phase 1 = 15, Phase 2 = **24**
+mặc định (25 khi bật flag), Phase 3 = 9.
+
 | Server | Phase | Tools | FR |
 |---|---|---|---|
 | `mcp-confluence` | 1 | `confluence_search_pages`, `confluence_get_page`, `confluence_list_spaces`, `confluence_list_page_children` | FR-001, FR-003 |
@@ -212,7 +219,7 @@ Prompts: `dev_knowledge_lookup` (confluence), `incident_investigation` (cloudwat
 `semantic_synthesis` (pgvector) — ADR-0014.
 
 **Ngân sách context:** mọi tool description ≤ 3 câu; không server nào vượt 12 tool; nếu
-người dùng bật cả 9 server thì tool list ~49 → khuyến nghị trong `docs/claude-usage/` là bật
+người dùng bật cả 9 server thì tool list ~48 (49 nếu bật DSL) → khuyến nghị trong `docs/claude-usage/` là bật
 theo phase/theo nhu cầu, không bắt buộc bật hết.
 
 ## Data model
@@ -325,6 +332,11 @@ erDiagram
 | `0003_indexes.sql` | HNSW `(embedding vector_cosine_ops) m=16, ef_construction=64`; btree `chunks(document_id)`; btree `documents(source_type, source_updated_at)` |
 | `0004_ingest_state.sql` | `ingest_runs`, `ingest_source_state`, `schema_migrations` |
 | `0005_roles.sql` | `mcp_ingest_rw` (DML trên `kb`), `mcp_query_ro` (chỉ `SELECT`, `default_transaction_read_only=on`) |
+
+`0001_extensions.sql` và `0005_roles.sql` cần quyền `CREATE EXTENSION`/`CREATEROLE` mà
+`mcp_ingest_rw` không có ⇒ `mcp-ingest db upgrade` chạy bằng **`MCP_INGEST_ADMIN_DSN`**
+(fallback `MCP_INGEST_PGVECTOR_DSN` khi chính role đó có quyền DDL, chỉ ở dev); mọi lệnh
+khác dùng `mcp_ingest_rw` (ADR-0011 A6).
 | `0006_review_followup.sql` | ADR-0011 A5: cột `last_seen_run_id`/`last_seen_at`/`chunk_config_hash`/`visibility` + index `documents(source_type, last_seen_run_id)` + bảng `ingest_failures` |
 
 Phase 1 và 2 **không có migration nào** (stateless) — điều này làm Phase 1/2 nhẹ hơn hẳn và
@@ -525,12 +537,13 @@ sequenceDiagram
   dùng, đặt trong env của process MCP trên máy họ. Vì thế **phân quyền được thừa hưởng từ hệ
   nguồn** và BR-003 thoả mãn mà không cần code RBAC — **trừ `kb`**, nguồn duy nhất dữ liệu bị
   sao chép ra khỏi hệ nguồn và đọc bằng credential không gắn với người hỏi (ADR-0016; xem
-  "Context & constraints" và R13). Đây là quyết định *proposed* đang chờ PO (Open question 3).
+  "Context & constraints" và R13). Đã chốt: corpus **team-only**, default-deny (ADR-0016 A1–A3).
 - **Least privilege bắt buộc khi cấp credential:** Confluence/GitLab PAT scope read
   (`read_api`/`read_repository` với GitLab), IAM policy chỉ action
   `Describe*/Get*/List*/Filter*/StartQuery` (+ `sts:GetCallerIdentity`, tuỳ chọn
-  `iam:SimulatePrincipalPolicy`), Redis ACL user read-only **có `+acl|getuser`**, Postgres
-  `mcp_query_ro`.
+  `iam:SimulatePrincipalPolicy`; SQS gồm `sqs:ListQueueTags` cho `include_tags`, ADR-0008 A6),
+  Redis ACL user read-only **có `+acl|getuser` và `+select`** (`+select` cho `db` > 0, ADR-0008
+  A5), Postgres `mcp_query_ro`.
 - **Startup credential check là điều kiện serve, không phải báo cáo** (ADR-0003 A1, ADR-0007 A2,
   ADR-0008 A1/A3, ADR-0009 A2): `build_server()` **từ chối serve** nếu credential không tự
   chứng minh là read-only — Postgres (`SHOW transaction_read_only = on` và
@@ -606,7 +619,14 @@ Một schema `Error` duy nhất cho mọi operation (ADR-0004, contract `compone
   ADR-0003 A1).
 - Biến riêng đáng chú ý của pipeline: `MCP_INGEST_MAX_DOC_RETRIES` (mặc định 2),
   **`MCP_INGEST_OPENSEARCH_INDICES`** (mặc định **rỗng** ⇒ connector OpenSearch tắt,
-  ADR-0012 A5), `MCP_GITLAB_PATH_DENY` (deny-glob áp ở **connector**, ADR-0015 A1).
+  ADR-0012 A5), `MCP_GITLAB_PATH_DENY` (deny-glob áp ở **connector**, ADR-0015 A1),
+  **`MCP_INGEST_ADMIN_DSN`** (chỉ cho `db upgrade`, ADR-0011 A6), allowlist team của S5
+  `MCP_INGEST_CONFLUENCE_TEAM_SPACES` / `MCP_INGEST_GITLAB_TEAM_PROJECTS` /
+  `MCP_INGEST_GITLAB_INTERNAL_IS_TEAM` (ADR-0016 A2).
+- Embedding: **`MCP_INGEST_EMBEDDING_*`** dùng chung cho `mcp-ingest` và `mcp-pgvector`; override
+  duy nhất phía server là `MCP_PGVECTOR_EMBEDDING_MODEL`; `mcp-pgvector` từ chối serve nếu
+  model/dimension lệch dữ liệu đã lưu (ADR-0010 A2).
+- Feature flag: `MCP_OPENSEARCH_ALLOW_DSL` (mặc định `false`, ADR-0008 A7).
 - `mcp-common config-emit --server confluence` in ra đoạn JSON dán vào
   `claude_desktop_config.json` (phục vụ verification NFR-005).
 
@@ -624,10 +644,13 @@ Một schema `Error` duy nhất cho mọi operation (ADR-0004, contract `compone
 - Giới hạn kích thước ở mọi tool; `meta.truncated` + `next_cursor` để lấy tiếp.
 
 ### Hạ tầng dev/test
-`infra/docker-compose.yml`: `pgvector/pgvector:pg16`, `redis:7` (có file ACL mẫu tạo user
-`mcp_ro`), `apache/kafka` (KRaft, single node), `localstack` (services `sqs,sns`).
+`infra/docker-compose.yml`: `pgvector/pgvector:pg16`, `redis:7` (có file ACL mẫu
+`infra/redis/users.acl` tạo user `mcp_ro` với `+acl|getuser` và `+select`), `apache/kafka` (KRaft, single node), `localstack` (services `sqs,sns`).
 Confluence/GitLab/OpenSearch/Kibana/CloudWatch **không** emulate → unit test bằng
 `respx`/mock theo fixture payload thật đã lưu, integration test gắn `@pytest.mark.live`.
+Hướng dẫn dev setup nằm ở **`infra/dev-setup.md`** (chốt khi reconcile 2026-10-01; plan T-015 ghi
+`docs/dev-setup.md` — `docs/` là phạm vi ghi của các role tài liệu, còn tài liệu này đi cùng
+compose file mà `squad-backend` sở hữu, nên giữ ở `infra/`).
 
 ## NFR mapping
 
@@ -673,18 +696,20 @@ Confluence/GitLab/OpenSearch/Kibana/CloudWatch **không** emulate → unit test 
 | [ADR-0006](../../adr/0006-http-client-and-timeout-budget.md) | httpx + tenacity và timeout budget chuẩn (chốt ngưỡng NFR-002) |
 | [ADR-0007](../../adr/0007-thin-rest-clients-confluence-gitlab.md) | Thin REST client tự viết cho Confluence & GitLab |
 | [ADR-0008](../../adr/0008-per-source-sdk-selection.md) | Chọn SDK cho OpenSearch, AWS, Redis, Postgres/pgvector |
-| [ADR-0009](../../adr/0009-kafka-client-and-readonly-consumption.md) | Kafka client + giao thức tiêu thụ read-only *(proposed)* |
-| [ADR-0010](../../adr/0010-embedding-provider-abstraction.md) | Embedding provider abstraction + model/dimension mặc định *(proposed)* |
+| [ADR-0009](../../adr/0009-kafka-client-and-readonly-consumption.md) | Kafka client + giao thức tiêu thụ read-only — **accepted**: `confluent-kafka>=2.15,<3` (spike S4, A4) |
+| [ADR-0010](../../adr/0010-embedding-provider-abstraction.md) | Embedding provider abstraction + model/dimension mặc định *(proposed — model provisional `BAAI/bge-m3`, S2 chưa đo được; A1–A2)* |
 | [ADR-0011](../../adr/0011-pgvector-schema-and-upsert.md) | Schema pgvector, HNSW cosine, upsert idempotent theo content hash |
 | [ADR-0012](../../adr/0012-ingest-pipeline-as-cli.md) | Ingest/embedding pipeline là CLI độc lập |
 | [ADR-0013](../../adr/0013-openapi-as-mcp-tool-contract.md) | OpenAPI 3.1 làm contract cho MCP tool + luật tương thích |
 | [ADR-0014](../../adr/0014-mcp-prompts-for-cross-source-synthesis.md) | MCP Prompts làm cơ chế tổng hợp đa nguồn & kỷ luật citation |
 | [ADR-0015](../../adr/0015-untrusted-content-and-redaction.md) | Xử lý nội dung không tin cậy + redaction secret |
-| [ADR-0016](../../adr/0016-document-visibility-and-future-rbac.md) | Cột `visibility` của `kb.documents` + đường mở sang RBAC per-user khi chuyển remote *(proposed — cần PO quyết trước khi code Phase 3, Open question 3)* |
+| [ADR-0016](../../adr/0016-document-visibility-and-future-rbac.md) | Cột `visibility` của `kb.documents` + đường mở sang RBAC per-user khi chuyển remote — **accepted**: corpus team-only, quy tắc default-deny S5, rủi ro tồn dư reconcile (A1–A3) |
 
 Tám ADR có phần **"Amendments (sau design review 2026-10-01)"** và phần đó là bản chốt hiện
 hành, đè lên phần Decision gốc: ADR-0003 (A1–A3), ADR-0006 (A1–A3), ADR-0007 (A1–A4),
 ADR-0008 (A1–A4), ADR-0009 (A1–A3), ADR-0011 (A1–A5), ADR-0012 (A1–A5), ADR-0015 (A1–A2).
+Reconcile contract_issue 2026-10-01 thêm: ADR-0008 A5–A7, ADR-0009 A4, ADR-0010 A1–A2,
+ADR-0011 A6, ADR-0016 A1–A3.
 
 ## Design review
 
@@ -744,11 +769,35 @@ review 2026-10-01)" của 8 ADR, cộng ADR-0016 được tạo mới từ revie
 Ngoài 29 amendment trên, review sinh **một ADR mới**: **ADR-0016** (`visibility` + đường mở
 RBAC) — ghi nhận rằng R13 không chờ tới lúc mở HTTP mới xuất hiện mà đã tồn tại ngay ở Phase 3,
 vì `kb` là nguồn duy nhất dữ liệu bị sao chép ra khỏi hệ nguồn. ADR-0016 ở trạng thái
-**proposed** và Phần 2 của nó là **quyết định chặn cần PO** trước khi code Phase 3.
+**proposed** và Phần 2 của nó là **quyết định chặn cần PO** trước khi code Phase 3 — *(cập nhật
+2026-10-01: user đã quyết team-only, ADR-0016 accepted, xem A1–A3)*.
 
 ### Findings bị reject
 Không có bản ghi nào. Xem "Tình trạng bằng chứng" ở trên: điều này có nghĩa là *không có
 rejection nào được ghi lại*, không phải bằng chứng rằng mọi finding đều được accept.
+
+### Reconcile contract_issue từ squad-backend (loops.spec=1, 2026-10-01)
+
+Nguyên tắc: thay đổi nhỏ nhất; ưu tiên đưa contract/ADR về khớp hành vi đã implement trừ khi
+hành vi đó sai. Không có thay đổi breaking với tool surface (tên tool, property, `required`,
+constraint đều giữ nguyên) ⇒ `tools.snapshot.json` không đổi.
+
+| # | Vấn đề | Quyết định | Nơi ghi |
+|---|---|---|---|
+| 1 | `confluence_get_page.x-upstream` ghi `expand=body.export_view` | Sửa contract theo code: `expand=body.storage,space,version,metadata.labels`; `export_view` bị cấm (ADR-0007 A1) | contract |
+| 2 | Flow mapping có dấu phẩy trong `description` bị parse thành key thừa | Quote 10 dòng (12 key thừa): `GitLabCodeHit.excerpt`, `GitLabFile.content`, `GitLabNote.system`, `GitLabChangedFile.diff_excerpt`, `OpenSearchIndex.store_size`, `OpenSearchBucket.key`, `KafkaMessage.value`, `KbChunkMatch.content`, `KbDocument.content`, `ingest_run.since`; quét toàn file không còn key lạ trong schema | contract |
+| 3 | `GitLabProjectRef` có `default: null` nhưng là `required` ở tool chi tiết | Tách: `GitLabProjectRef` (string, không default, dùng cho 7 tool chi tiết) và `GitLabProjectScope` (nullable, default null, dùng cho `gitlab_search_code`/`gitlab_list_merge_requests`/`gitlab_list_issues`) | contract |
+| 4a | `kibana_build_dashboard_link`: contract 1 GET xác minh vs plan T-039/TC-019 "không gọi mạng" | **Giữ contract** (code đã làm vậy): đúng một `GET /api/saved_objects/dashboard/{id}` để chống citation tới dashboard id bịa (FR-015) và lấy `title`; URL vẫn dựng thuần hàm | contract (lý do) |
+| 4b | `kibana_find_saved_objects`: contract `empty` vs TC-020 `not_found` | **Giữ `empty`** theo quy ước `ResultStatus` (tìm kiếm không khớp = `empty`; `not_found` dành cho định danh cụ thể). `empty` là kết quả "not found" tường minh mà FR-005 AC-002 đòi | contract (lý do) |
+| 5 | `opensearch_search_dsl`: flag, aggs, size/from, `allow_expensive_queries` | Bề mặt mặc định 48 tool / Phase 2 = 24; `aggs` nhận nhưng không trả kết quả (warning); `size` kẹp về `limit`, `from` ≤ 900, `from+size` ≤ 1000; bỏ câu `allow_expensive_queries` per-request (là cluster setting) | contract + ADR-0008 A7 |
+| 6 | Redis `db > 0` cần `+select` | **Thêm `+select`** vào ACL (không thu hẹp contract về db 0); `SELECT` không vào allowlist lệnh của tool | ADR-0008 A5 |
+| 7 | `kb_list_sources` ví dụ `uri: null` vi phạm bất biến 6 | Giữ bất biến; `uri` = origin của `source_uri` của một document sống; nguồn không có document sống → `meta.warnings`; sửa ví dụ | contract |
+| 8 | `ingest_db_upgrade` ghi role `mcp_ingest_rw` không CREATE EXTENSION/ROLE được | `MCP_INGEST_ADMIN_DSN` (fallback `MCP_INGEST_PGVECTOR_DSN`), chỉ cho `db upgrade` | contract + ADR-0011 A6 |
+| 9 | `include_tags` cần `sqs:ListQueueTags` | Đã có trong allowlist ADR-0008; chốt thêm vào IAM policy read-only | ADR-0008 A6 |
+| 10 | ADR-0009 | `accepted`, `confluent-kafka>=2.15,<3` | ADR-0009 A4 |
+| 11 | ADR-0010 | Giữ `proposed`; provisional `BAAI/bge-m3`; cấu hình `MCP_INGEST_EMBEDDING_*` + override `MCP_PGVECTOR_EMBEDDING_MODEL`; module embedding không import `psycopg`; pgvector từ chối lệch model/dimension | ADR-0010 A1–A2 |
+| 12 | ADR-0016 | `accepted`: team-only, T-067 đóng, quy tắc default-deny S5, rủi ro tồn dư; dòng 16 có trong bảng ADR | ADR-0016 A1–A3 |
+| 13 | `infra/dev-setup.md` vs `docs/dev-setup.md` | Giữ **`infra/dev-setup.md`** | mục "Hạ tầng dev/test" |
 
 ## Risks & spikes
 
@@ -766,9 +815,9 @@ rejection nào được ghi lại*, không phải bằng chứng rằng mọi fi
 | R10 | Crawl toàn bộ Confluence/GitLab đụng rate limit | Run partial kéo dài | Incremental theo watermark là mặc định; tôn trọng `Retry-After`; `--limit` |
 | R11 | `mcp-common` là điểm ảnh hưởng chung của 10 package | Một regression làm đổ cả hệ | Test suite riêng cho `mcp_common` với coverage cao; thay đổi breaking phải cập nhật contract |
 | R12 | HNSW build tốn RAM khi số chunk lớn | Ingest lần đầu chậm/ fail | `maintenance_work_mem` riêng cho session build; build index sau lô nạp đầu tiên |
-| R13 | Giả định BR-003 (truy cập đồng nhất) sai với một nguồn nào đó | Người dùng thấy dữ liệu không nên thấy | 8/9 nguồn an toàn ở v1 nhờ credential per-user (xem "AuthN/AuthZ"). **`kb` là ngoại lệ và rủi ro xuất hiện ngay ở Phase 3, không chờ mở HTTP** (ADR-0016): dữ liệu được sao chép ra khỏi hệ nguồn và đọc bằng `mcp_query_ro` — credential không gắn với người hỏi. Giảm thiểu: cột `visibility` ghi từ lúc crawl; **cần PO quyết trước khi code Phase 3** corpus có được chứa `restricted` hay không (Open question 3) — nếu "không" thì `mcp-ingest` từ chối ingest `visibility != 'team'`, nếu "có" thì RBAC per-user là must-have của Phase 3 |
-| R14 | Layout `packages/` lệch mô tả `backend/` trong CLAUDE.md | `squad-backend` có thể bị chặn quyền ghi | Cần orchestrator xác nhận ở Gate B (xem `needs_user_decision`) |
-| R15 | Quy tắc suy ra `visibility` cho từng connector **chưa được định nghĩa** (Confluence space permission, GitLab project visibility + member role) | Nhãn sai ⇒ filter RBAC tương lai sai; giá trị `visibility` là ảnh chụp lúc crawl nên quyền đổi ở nguồn thì nhãn cũ | Đầu ra của **spike S5** (đầu Phase 3), cùng với quy tắc dựng `source_id` ổn định qua ILM rollover (ADR-0012 A5); full reconcile để cập nhật nhãn, phải nói rõ khi RBAC được bật (ADR-0016) |
+| R13 | Giả định BR-003 (truy cập đồng nhất) sai với một nguồn nào đó | Người dùng thấy dữ liệu không nên thấy | 8/9 nguồn an toàn ở v1 nhờ credential per-user (xem "AuthN/AuthZ"). **`kb` là ngoại lệ và rủi ro xuất hiện ngay ở Phase 3, không chờ mở HTTP** (ADR-0016): dữ liệu được sao chép ra khỏi hệ nguồn và đọc bằng `mcp_query_ro` — credential không gắn với người hỏi. Giảm thiểu: cột `visibility` ghi từ lúc crawl; **đã quyết team-only** (ADR-0016 A1): `mcp-ingest` từ chối `visibility != 'team'`, quy tắc default-deny S5 (A2). **Tồn dư:** page Confluence bị đặt restriction không đổi nội dung vẫn tìm được tới full reconcile kế tiếp (A3) — PO cần xác nhận chu kỳ reconcile |
+| R14 | Layout `packages/` lệch mô tả `backend/` trong CLAUDE.md | `squad-backend` có thể bị chặn quyền ghi | **Đã đóng** ở Gate B (CLAUDE.md có override `packages/`) |
+| R15 | Quy tắc suy ra `visibility` cho từng connector *(đã định nghĩa ở S5 / ADR-0016 A2 — default-deny; còn chờ xác nhận hình dạng API live)* | Nhãn sai ⇒ filter RBAC tương lai sai; giá trị `visibility` là ảnh chụp lúc crawl nên quyền đổi ở nguồn thì nhãn cũ | Đầu ra của **spike S5** (đầu Phase 3), cùng với quy tắc dựng `source_id` ổn định qua ILM rollover (ADR-0012 A5); full reconcile để cập nhật nhãn, phải nói rõ khi RBAC được bật (ADR-0016) |
 | R16 | `asyncio.timeout` không huỷ được thread của SDK đồng bộ → executor bị cạn làm treo mọi tool call sau đó, **vô hình** vì các call đầu vẫn trả lỗi đẹp | Đúng cái treo mà NFR-002 cấm | `ThreadPoolExecutor` riêng `max_workers=4` + queue giới hạn, queue đầy → `upstream_unavailable` ngay (ADR-0006 A1 / 0008 A4 / 0009 A3); QA có test riêng cho case executor cạn |
 | R17 | Kafka `auto.create.topics.enable=true` ở broker biến chính **test âm của FR-007 AC-002** thành một thao tác ghi (tự tạo topic trên cluster thật) | Vi phạm NFR-001 bằng chính bộ test read-only | Chặn ở 3 chỗ: `allow.auto.create.topics=false`, không bao giờ truyền `topic=` vào metadata request, ACL deny `Create` trên Cluster + Topic (ADR-0003 A3 / ADR-0009 A1) |
 | R18 | Mất dữ liệu âm thầm ở pipeline: document fail bị checkpoint vượt qua, hoặc reconcile tombstone hàng loạt sau một crawl chết giữa đường | FR-012 AC-001 sai mà `status` vẫn có thể `success`; FR-011/FR-013 trả "không tìm thấy" cho nội dung thật | Quy tắc cursor `min(watermark doc fail) − ε` + bất kỳ doc fail ⇒ `partial` + `kb.ingest_failures` + `run --retry-failed` (ADR-0012 A2); safety valve 0.8 cho reconcile (ADR-0012 A3) |
@@ -778,7 +827,7 @@ rejection nào được ghi lại*, không phải bằng chứng rằng mọi fi
 | Spike | Khi nào | Đầu ra |
 |---|---|---|
 | S1 — Reachability/VPN của 5 nguồn remote | Trước Phase 1 | Bảng reachability + kết luận Open question 4 |
-| S2 — Embedding bake-off | Đầu Phase 3 | Chốt model/provider, đóng ADR-0010 |
+| S2 — Embedding bake-off | Đầu Phase 3 | Chốt model/provider, đóng ADR-0010 — *harness xong, **chưa đo** (HF bị chặn); ADR-0010 vẫn proposed* |
 | S3 — Hybrid search | Sau Phase 3 | Đánh giá có cần `tsvector` + RRF |
-| S4 — Kafka client install check | Đầu Phase 2 | Chốt `confluent-kafka` hay `kafka-python`, đóng ADR-0009 |
-| S5 — Quy tắc suy ra `visibility` + quy tắc dựng `source_id` cho từng connector | Đầu Phase 3, **sau khi PO trả lời Open question 3** | Bảng quy tắc per-connector; đóng ADR-0016 (R15, ADR-0012 A5) |
+| S4 — Kafka client install check | Đầu Phase 2 | Chốt `confluent-kafka` hay `kafka-python`, đóng ADR-0009 — ***xong**: `confluent-kafka`, ADR-0009 accepted* |
+| S5 — Quy tắc suy ra `visibility` + quy tắc dựng `source_id` cho từng connector | Đầu Phase 3, **sau khi PO trả lời Open question 3** | Bảng quy tắc per-connector; đóng ADR-0016 (R15, ADR-0012 A5) — ***xong** (quy tắc), chờ xác nhận live T-070…T-072; ADR-0016 accepted* |

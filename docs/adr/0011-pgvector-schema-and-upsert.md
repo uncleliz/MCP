@@ -185,3 +185,18 @@ Document fail vĩnh viễn trở nên **nhìn thấy được** (và lấy lại
 ### A5 — Migration và retention
 Thêm `0006_review_followup.sql` cho A1/A2/A4. Bổ sung lệnh `mcp-ingest prune` (ADR-0012 A5):
 không có nó thì `kb` chỉ tăng — bia mộ không bao giờ được dọn và không có bound retention nào.
+
+## Amendments (reconcile contract_issue từ squad-backend, 2026-10-01)
+
+### A6 — `db upgrade` chạy bằng DSN quản trị riêng, không bằng `mcp_ingest_rw`
+Migration `0001_extensions.sql` (`CREATE EXTENSION vector, pgcrypto`) và `0005_roles.sql`
+(`CREATE ROLE mcp_ingest_rw / mcp_query_ro`) đòi quyền mà `mcp_ingest_rw` (chỉ DML trên `kb`)
+**không có và không được có**. Quyết định:
+- `mcp-ingest db upgrade` dùng **`MCP_INGEST_ADMIN_DSN`** (role sở hữu schema `kb`, có quyền
+  `CREATE` trên database + `CREATEROLE`, hoặc superuser trên dev); **fallback**
+  `MCP_INGEST_PGVECTOR_DSN` chỉ khi người vận hành đã cấp quyền DDL cho chính role đó (môi
+  trường dev). Thiếu cả hai ⇒ lỗi cấu hình tường minh.
+- `MCP_INGEST_ADMIN_DSN` **chỉ** được dùng bởi `db upgrade`; `run`/`reembed`/`prune`/`status`/
+  `sources` luôn dùng `MCP_INGEST_PGVECTOR_DSN` (`mcp_ingest_rw`). Không MCP server nào đọc biến
+  này; nó không bao giờ được đặt vào `claude_desktop_config.json`.
+- Contract `ingest_db_upgrade.x-side-effects` đã cập nhật tương ứng.
