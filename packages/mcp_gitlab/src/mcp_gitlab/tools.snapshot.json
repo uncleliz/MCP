@@ -18,17 +18,10 @@
           "type": "string"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         },
         "ref": {
           "default": "HEAD",
@@ -69,17 +62,10 @@
           "type": "integer"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         }
       },
       "required": [
@@ -119,17 +105,10 @@
           "type": "integer"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         }
       },
       "required": [
@@ -163,17 +142,10 @@
           "type": "string"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         }
       },
       "required": [
@@ -223,17 +195,10 @@
           "title": "Path"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         },
         "ref": {
           "default": "HEAD",
@@ -520,17 +485,10 @@
           "type": "integer"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         },
         "ref": {
           "anyOf": [
@@ -622,17 +580,10 @@
           "type": "string"
         },
         "project": {
-          "anyOf": [
-            {
-              "maxLength": 512,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "description": "path_with_namespace hoặc id (dạng string).",
-          "title": "Project"
+          "maxLength": 512,
+          "title": "Project",
+          "type": "string"
         },
         "recursive": {
           "default": false,

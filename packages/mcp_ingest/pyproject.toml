@@ -5,6 +5,10 @@ description = "Ingest/embedding pipeline CLI for the kb schema (Phase 3, FR-012)
 requires-python = ">=3.12"
 dependencies = [
   "mcp-common",
+  # Connectors reuse the transport layer (client.py) of the source packages (ADR-0012 A4).
+  "mcp-confluence",
+  "mcp-gitlab",
+  "mcp-opensearch",
   "psycopg[binary]>=3.2,<4",
   "pydantic>=2.8",
   "pydantic-settings>=2.4",
@@ -22,6 +26,9 @@ mcp-ingest = "mcp_ingest.cli:main"
 
 [tool.uv.sources]
 mcp-common = { workspace = true }
+mcp-confluence = { workspace = true }
+mcp-gitlab = { workspace = true }
+mcp-opensearch = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

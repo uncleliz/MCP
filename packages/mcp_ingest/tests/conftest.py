@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Iterator
+from pathlib import Path
 
 import psycopg
 import pytest
 from mcp_ingest.db import upgrade
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from ingest_helpers import as_user  # noqa: E402
 
 
 @pytest.fixture
@@ -32,3 +38,9 @@ def migrated_template(pg_server) -> Iterator[str]:
 @pytest.fixture
 def migrated_db(pg_database_factory: Callable[..., str], migrated_template: str) -> str:
     return pg_database_factory(template=migrated_template)
+
+
+@pytest.fixture
+def rw_dsn(migrated_db: str) -> str:
+    """DSN of the write-capable `mcp_ingest_rw` role on a fresh migrated database."""
+    return as_user(migrated_db, "mcp_ingest_rw")

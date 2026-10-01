@@ -20,7 +20,7 @@ import redis.asyncio as aioredis
 import redis.exceptions as rex
 from mcp_common.config import CommonSettings
 from mcp_common.errors import NotPermittedError
-from mcp_redis.client import RedisClient
+from mcp_redis.client import ALLOWED_COMMANDS, RedisClient
 from mcp_redis.read_api import RedisReadApi
 from mcp_redis.settings import Settings
 from pydantic import SecretStr
@@ -182,17 +182,64 @@ async def test_FR_008_AC_003_writes_are_refused_by_code_and_by_the_server_acl(
 
 
 @pytest.mark.asyncio
-async def test_non_default_db_needs_select_which_the_dev_acl_does_not_grant(
+async def test_non_default_db_works_with_select_granted_and_stays_read_only(
     local_redis: int,
 ) -> None:
-    """The ADR-0008 ACL has no `+select`, so `db>0` is refused by the server as `forbidden`
-    (recorded in the T-049..T-051 notes; db 0 is the supported default)."""
-    from mcp_common.errors import ToolError
-
+    """ADR-0008 A5: the ACL grants `+select` so `db>0` works (SA reconcile, 2026-10-01).
+    SELECT is never sent by a tool (it is not in ALLOWED_COMMANDS); the connection to db 1 sends
+    it at connect time. It must not turn the startup check red, and writes stay refused."""
+    admin = aioredis.Redis(port=local_redis, db=1)
+    await admin.flushall()
+    await admin.set("only-in-db1", "hello")
+    await admin.aclose()
     client = _client(local_redis)
     try:
-        with pytest.raises(ToolError) as exc:
-            await client.execute("TYPE", "greeting", db=1)
-        assert exc.value.code.value == "forbidden" and "+select" in exc.value.details["hint"]
+        assert "SELECT" not in ALLOWED_COMMANDS
+        assert await client.execute("GET", "only-in-db1", db=1) == b"hello"
+        assert await client.execute("GET", "only-in-db1", db=0) is None
+        with pytest.raises(NotPermittedError):
+            await client.execute("SET", "k", "v", db=1)
+        with pytest.raises(NotPermittedError):  # SELECT as a command is not a tool command
+            await client.execute("SELECT", 1)
+        report = await client.verify_credentials()
+        assert report.ok, report.reasons  # +select is not a write grant
+    finally:
+        await client.aclose()
+
+
+def test_the_acl_file_grants_select_and_nothing_that_writes() -> None:
+    from mcp_redis.client import acl_write_grants
+
+    rules = next(line for line in USERS_ACL.read_text().splitlines() if "user mcp_ro" in line)
+    assert "+select" in rules.split()
+    assert (
+        acl_write_grants(
+            {"commands": " ".join(t for t in rules.split() if t.startswith(("+", "-")))}
+        )
+        == []
+    )
+
+
+@pytest.mark.asyncio
+async def test_T_051_the_three_key_tools_work_against_db_1_with_the_real_acl(
+    local_redis: int,
+) -> None:
+    """ADR-0008 A5 / SA reconcile #6: `db=1` returns ok/empty/not_found, never `forbidden`."""
+    admin = aioredis.Redis(port=local_redis, db=1)
+    await admin.flushall()
+    await admin.set("only-in-db1", "hello")
+    await admin.rpush("queue:db1", "a", "b")
+    await admin.aclose()
+    client = _client(local_redis)
+    api = RedisReadApi(client, CommonSettings())
+    try:
+        scan = await api.scan_keys(pattern="*", db=1)
+        assert scan.result.status.value == "ok"
+        assert {i["key"] for i in scan.result.items} == {"only-in-db1", "queue:db1"}
+        assert (await api.get_key(key="only-in-db1", db=1)).result.items[0]["value"] == "hello"
+        info = (await api.key_info(key="queue:db1", db=1)).result.items[0]
+        assert info["type"] == "list" and info["length"] == 2
+        assert (await api.get_key(key="only-in-db1", db=0)).result.status.value == "not_found"
+        assert (await api.scan_keys(pattern="zzz*", db=1)).result.status.value == "empty"
     finally:
         await client.aclose()

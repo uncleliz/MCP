@@ -64,7 +64,7 @@ TOOL_DESCRIPTIONS: dict[str, str] = {
 }
 
 ProjectRequired = Annotated[
-    str | None,
+    str,
     Field(max_length=512, description="path_with_namespace hoặc id (dạng string)."),
 ]
 ProjectOptional = Annotated[
@@ -117,7 +117,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         ref: Ref = "HEAD",
         max_bytes: MaxBytesParam = 65536,
     ) -> ToolOutcome:
-        return await api().get_file(project=project or "", path=path, ref=ref, max_bytes=max_bytes)
+        return await api().get_file(project=project, path=path, ref=ref, max_bytes=max_bytes)
 
     @readonly_tool
     async def gitlab_list_repository_tree(
@@ -129,7 +129,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         cursor: CursorParam = None,
     ) -> ToolOutcome:
         return await api().list_repository_tree(
-            project=project or "",
+            project=project,
             path=path,
             ref=ref,
             recursive=recursive,
@@ -148,7 +148,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         cursor: CursorParam = None,
     ) -> ToolOutcome:
         return await api().list_commits(
-            project=project or "", ref=ref, path=path, since=since, until=until,
+            project=project, ref=ref, path=path, since=since, until=until,
             limit=limit, cursor=cursor,
         )  # fmt: skip
 
@@ -179,7 +179,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         max_bytes: MaxBytesParam = 65536,
     ) -> ToolOutcome:
         return await api().get_merge_request(
-            project=project or "", iid=iid, include_changes=include_changes,
+            project=project, iid=iid, include_changes=include_changes,
             include_notes=include_notes, max_bytes=max_bytes,
         )  # fmt: skip
 
@@ -208,7 +208,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         max_bytes: MaxBytesParam = 65536,
     ) -> ToolOutcome:
         return await api().get_issue(
-            project=project or "", iid=iid, include_notes=include_notes, max_bytes=max_bytes
+            project=project, iid=iid, include_notes=include_notes, max_bytes=max_bytes
         )
 
     @readonly_tool
@@ -234,7 +234,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         cursor: CursorParam = None,
     ) -> ToolOutcome:
         return await api().list_pipelines(
-            project=project or "", ref=ref, status=status, updated_after=updated_after,
+            project=project, ref=ref, status=status, updated_after=updated_after,
             limit=limit, cursor=cursor,
         )  # fmt: skip
 
@@ -246,7 +246,7 @@ def make_tools(api: ApiFactory) -> dict[str, Callable[..., Any]]:
         max_bytes: MaxBytesParam = 65536,
     ) -> ToolOutcome:
         return await api().get_pipeline(
-            project=project or "", pipeline_id=pipeline_id,
+            project=project, pipeline_id=pipeline_id,
             include_failed_job_trace=include_failed_job_trace, max_bytes=max_bytes,
         )  # fmt: skip
 

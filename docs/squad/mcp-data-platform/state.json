@@ -2,7 +2,7 @@
   "feature": "mcp-data-platform",
   "language": "vi",
   "tier": "large",
-  "stage": "backend",
+  "stage": "qa-verify",
   "stale": [],
   "loops": {
     "qa": 0,
@@ -131,6 +131,18 @@
       "stage": "lead",
       "result": "done",
       "note": "Stale re-runs done: lead updated T-015/016/036/039/051/053/054/055/056/067(closed)/068/073/085, uncovered_ac=[]; qa-plan 77 TC (TC-072 closed, TC-075..077 added), 37/37 AC; SA fixed invalid_argument→invalid_input prose (code already invalid_input). Open nit: TC-076 text still says invalid_argument (QA at qa-verify). Backend Phase 3b still running."
+    },
+    {
+      "at": "2026-10-01T05:00:00+07:00",
+      "stage": "backend",
+      "result": "done",
+      "note": "Phase 3b T-066, T-068..T-086 done (T-086 procedure only) + Redis +select + gitlab ProjectRequired str. 1975 passed, 11 live skipped, coverage 95.9%, make ci green (verified by orchestrator). Pending outside container: live source shape checks, real-model recall, pgvector>=0.8 iterative scan, manual sign-off for phases 1-3, S1/S2/S3 measurements. Deviations: runbook at infra/scheduler/runbook-ingest.md; prune requires --older-than (stricter than contract anyOf); status --json omits failures count (contract has no field); blocked_by_policy only in ingest_failures.code."
+    },
+    {
+      "at": "2026-10-01T05:01:00+07:00",
+      "stage": "frontend",
+      "result": "skipped: no tasks",
+      "note": "Backend-only project."
     }
   ],
   "base_ref": "0f5c20e",
@@ -381,7 +393,43 @@
       "packages/mcp_sqs_sns/tests/test_settings_cli.py",
       "packages/mcp_sqs_sns/tests/test_timeout_budget.py",
       "packages/mcp_sqs_sns/tests/test_tools_readonly.py",
-      "scripts/bakeoff_embedding.py"
+      "scripts/bakeoff_embedding.py",
+      "infra/redis/users.acl",
+      "packages/mcp_ingest/pyproject.toml",
+      "packages/mcp_ingest/src/mcp_ingest/cli.py",
+      "packages/mcp_ingest/src/mcp_ingest/reports.py",
+      "packages/mcp_ingest/src/mcp_ingest/settings.py",
+      "packages/mcp_ingest/tests/conftest.py",
+      "docs/claude-usage/journey-3.md",
+      "docs/signoff/phase-3.md",
+      "docs/spikes/S3-hybrid-search.md",
+      "eval/recall_queries.yaml",
+      "infra/scheduler/",
+      "packages/mcp_ingest/src/mcp_ingest/commands/",
+      "packages/mcp_ingest/src/mcp_ingest/connectors/",
+      "packages/mcp_ingest/src/mcp_ingest/pipeline/",
+      "packages/mcp_ingest/tests/ingest_helpers.py",
+      "packages/mcp_ingest/tests/test_checkpoint.py",
+      "packages/mcp_ingest/tests/test_chunker.py",
+      "packages/mcp_ingest/tests/test_cli_contract.py",
+      "packages/mcp_ingest/tests/test_connector_confluence.py",
+      "packages/mcp_ingest/tests/test_connector_gitlab.py",
+      "packages/mcp_ingest/tests/test_connector_isolation.py",
+      "packages/mcp_ingest/tests/test_connector_opensearch.py",
+      "packages/mcp_ingest/tests/test_integration.py",
+      "packages/mcp_ingest/tests/test_persist_idempotent.py",
+      "packages/mcp_ingest/tests/test_prune.py",
+      "packages/mcp_ingest/tests/test_reconcile_valve.py",
+      "packages/mcp_ingest/tests/test_reembed.py",
+      "packages/mcp_ingest/tests/test_retry_failed.py",
+      "packages/mcp_ingest/tests/test_scheduler.py",
+      "packages/mcp_ingest/tests/test_signoff_surface.py",
+      "packages/mcp_ingest/tests/test_stage_redact.py",
+      "packages/mcp_ingest/tests/test_status.py",
+      "packages/mcp_pgvector/tests/test_eval_phase3.py",
+      "packages/mcp_pgvector/tests/test_recall.py",
+      "scripts/recall_benchmark.py",
+      "scripts/verify_tool_surface.py"
     ],
     "frontend": []
   }

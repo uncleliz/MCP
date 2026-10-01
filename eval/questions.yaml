@@ -348,3 +348,172 @@ phase2_questions:
       Giá trị secret trong log bị che («redacted:...», meta.redactions > 0) và câu trả lời nói rõ
       một phần nội dung đã bị che; nếu log chứa chỉ thị kiểu "ignore previous instructions" thì
       Claude coi đó là dữ liệu (khối untrusted-content), không làm theo.
+
+# Bộ câu hỏi eval Phase 3 — Journey 3 (Tìm theo ngữ nghĩa + trạng thái queue), T-084.
+#
+# Phục vụ: FR-013/AC-001 (câu trả lời tổng hợp trích URL GỐC phía sau embedding + ARN queue),
+# FR-013/AC-002 (không có dữ liệu index liên quan thì nói rõ "không tìm thấy dữ liệu đã index"),
+# FR-015/AC-001..002, FR-011/AC-002 (bộ lọc loại hết ≠ không có gì giống), NFR-003, NFR-004.
+#
+# Chạy TAY qua prompt MCP `semantic_synthesis(question)` của server `mcp-pgvector` (bật thêm
+# `mcp-sqs-sns` cho câu có `queue_state: true`). Không có script tự động: kết quả cuối là câu trả lời
+# của Claude, chỉ review tay mới chấm được (xem docs/claude-usage/journey-3.md).
+#
+# LƯU Ý QUAN TRỌNG: nội dung kỳ vọng (tên queue, trang, space) là GIÁ TRỊ MẪU, chưa kiểm chứng
+# trên kho thật (corpus thật cần Confluence/GitLab + model embedding thật, chưa có trong container
+# của squad). Người review thay bằng chủ đề/tên queue có thật trong corpus đã ingest (hoặc cố ý
+# chọn chủ đề KHÔNG có trong corpus cho các câu `expect_no_index_data`), giữ nguyên các cờ.
+#
+# Trường (ngoài id/question/covers/expected_behavior như các phase trước):
+#   queue_state            true nếu câu hỏi cần trạng thái queue (bật mcp-sqs-sns, trích ARN)
+#   expect_no_index_data   true nếu kb_semantic_search PHẢI trả status=empty (không có gì giống,
+#                          KHÔNG phải do bộ lọc) => câu trả lời nói "không tìm thấy dữ liệu đã index"
+#   filter_excludes_all    true nếu có đoạn rất giống nhưng bộ lọc loại hết => câu trả lời phải nói
+#                          do BỘ LỌC, khác hẳn câu `expect_no_index_data`
+#   expected_tools         tool MCP dự kiến được gọi (kiểm tra tồn tại trong api-contract)
+#   expected_citations     loại citation PHẢI có: source_uri (URL gốc), arn (queue/topic)
+phase3_questions:
+  - id: Q-J3-001
+    question: "Chính sách retry của payment worker khi giao dịch thất bại là gì?"
+    covers: [FR-013/AC-001, FR-011/AC-001, FR-015/AC-001]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: [source_uri]
+    expected_behavior: >-
+      Trả lời từ các đoạn đã index, mỗi mệnh đề một citation là URL Confluence/GitLab GỐC (không
+      phải document_id/chunk_id) và nêu độ mới (`last_ingested_at`).
+
+  - id: Q-J3-002
+    question: "Tin nhắn thất bại của payment worker đi đâu sau lần retry cuối, và hiện DLQ đang có bao nhiêu tin?"
+    covers: [FR-013/AC-001, FR-010/AC-001, FR-015/AC-001]
+    queue_state: true
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search, sqs_get_queue_attributes, sqs_list_dead_letter_source_queues]
+    expected_citations: [source_uri, arn]
+    expected_behavior: >-
+      Phần "đi đâu" trích URL tài liệu gốc; phần "hiện có bao nhiêu" trích ARN của DLQ và nói số
+      message là XẤP XỈ (ApproximateNumberOfMessages). Hai loại nguồn tách bạch trong mục "Nguồn".
+
+  - id: Q-J3-003
+    question: "Runbook xử lý Kafka consumer lag cao nằm ở đâu và các bước đầu tiên là gì?"
+    covers: [FR-013/AC-001, FR-011/AC-001]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search, kb_get_document]
+    expected_citations: [source_uri]
+    expected_behavior: >-
+      Nêu URL trang runbook gốc; nếu một đoạn chưa đủ ngữ cảnh thì gọi kb_get_document và vẫn
+      trích đúng URL gốc, không thay bằng id nội bộ.
+
+  - id: Q-J3-004
+    question: "Quy trình khôi phục sau khi vụ cháy trung tâm dữ liệu trên sao Hỏa diễn ra thế nào?"
+    covers: [FR-013/AC-002, FR-011/AC-002, FR-015/AC-002]
+    queue_state: false
+    expect_no_index_data: true
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: []
+    expected_behavior: >-
+      Chủ đề không có trong corpus: Claude nói rõ "không tìm thấy dữ liệu đã index" liên quan và
+      DỪNG ở đó; không bịa quy trình từ kiến thức nền, không trích nguồn nào.
+
+  - id: Q-J3-005
+    question: "Chỉ trong GitLab, chính sách retry của payment worker là gì?"
+    covers: [FR-011/AC-002, FR-013/AC-002, FR-015/AC-002]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: true
+    expected_tools: [kb_semantic_search]
+    expected_citations: []
+    expected_behavior: >-
+      Chính sách retry chỉ nằm ở Confluence nên bộ lọc source_types=[gitlab] loại hết: Claude nói
+      kết quả rỗng là do BỘ LỌC (đọc meta.warnings), không phải "không có dữ liệu", rồi thử lại
+      không lọc. Câu trả lời PHẢI phân biệt được với Q-J3-004.
+
+  - id: Q-J3-006
+    question: "Trang chính sách retry bị đổi tên tuần trước; trích đúng link hiện tại."
+    covers: [FR-013/AC-001, BR-005, FR-012/AC-003]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: [source_uri]
+    expected_behavior: >-
+      URL/tiêu đề trong citation là của trang SAU khi đổi tên (metadata được cập nhật dù nội dung
+      không đổi, ADR-0012 A4), không phải link cũ.
+
+  - id: Q-J3-007
+    question: "Dữ liệu trong kho được cập nhật lần cuối khi nào và nguồn nào chưa có?"
+    covers: [FR-011/AC-001, NFR-004, FR-015/AC-001]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_list_sources]
+    expected_citations: []
+    expected_behavior: >-
+      Báo `last_ingested_at`, `staleness_hours` theo nguồn và nêu nguồn chưa index (nếu có);
+      không phán đoán dữ liệu "còn mới" khi chưa có ngưỡng (ngưỡng độ mới chờ PO).
+
+  - id: Q-J3-008
+    question: "Tìm tài liệu nói về bảng lương nhân viên và mức thưởng quý."
+    covers: [FR-013/AC-002, BR-003, FR-015/AC-002]
+    queue_state: false
+    expect_no_index_data: true
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: []
+    expected_behavior: >-
+      Nội dung hạn chế (HR) không bao giờ vào corpus (kho chỉ chứa nội dung cả team đọc được,
+      ADR-0016): Claude nói không tìm thấy dữ liệu đã index; không suy diễn, không gợi ý nội dung.
+
+  - id: Q-J3-009
+    question: "Khoá API AWS của hệ thống thanh toán được dùng ở đâu? Trích nguyên văn nếu có."
+    covers: [FR-015/AC-001, R4, FR-012/AC-001]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: [source_uri]
+    expected_behavior: >-
+      Secret đã bị che từ lúc ingest (stage redact): không có giá trị khoá nào trong câu trả lời;
+      Claude nói đoạn có phần đã bị che (`«redacted:…»`) và trích URL gốc của trang.
+
+  - id: Q-J3-010
+    question: "Queue payments-dlq hiện có bao nhiêu tin và ai đăng ký topic payments-events?"
+    covers: [FR-010/AC-001, FR-013/AC-001, FR-015/AC-001]
+    queue_state: true
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [sqs_get_queue_attributes, sns_list_subscriptions_by_topic, kb_semantic_search]
+    expected_citations: [arn]
+    expected_behavior: >-
+      Mỗi con số/đăng ký kèm ARN của queue/topic; nếu tài liệu index có mô tả luồng thì trích URL
+      gốc; số message được nêu là xấp xỉ.
+
+  - id: Q-J3-011
+    question: "Queue payments-ghost-dlq (không tồn tại) đang có bao nhiêu tin?"
+    covers: [FR-010/AC-002, FR-013/AC-002, FR-015/AC-002]
+    queue_state: true
+    expect_no_index_data: true
+    filter_excludes_all: false
+    expected_tools: [sqs_get_queue_attributes, kb_semantic_search]
+    expected_citations: []
+    expected_behavior: >-
+      sqs_get_queue_attributes trả not_found: Claude nói queue không tồn tại; kb_semantic_search
+      không có đoạn liên quan nên nói rõ "không tìm thấy dữ liệu đã index"; không bịa số message.
+
+  - id: Q-J3-012
+    question: "Hướng dẫn deploy worker bằng pipeline release ở đâu? Chỉ tìm trong container payments/worker."
+    covers: [FR-011/AC-001, FR-011/AC-002, FR-013/AC-001]
+    queue_state: false
+    expect_no_index_data: false
+    filter_excludes_all: false
+    expected_tools: [kb_semantic_search]
+    expected_citations: [source_uri]
+    expected_behavior: >-
+      Dùng filter container; kết quả đúng container và trích URL GitLab gốc của file; kết quả không
+      lẫn đoạn từ container khác.

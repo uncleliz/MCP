@@ -72,6 +72,8 @@ async def test_every_tool_call_only_sends_allowlisted_commands(
         for c in calls
     }
     assert sent_keys <= set(ALLOWED_COMMANDS), sent_keys - set(ALLOWED_COMMANDS)
+    # T-051: db switching is never a tool command
+    assert not sent_keys & {"SELECT", "SWAPDB", "MOVE"}
     assert len(calls) > len(OK_CALLS) and sent
     assert fake_data[0]["greeting"]["value"] == "xin chào"  # data untouched
 

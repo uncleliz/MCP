@@ -1685,6 +1685,9 @@ source = { editable = "packages/mcp_ingest" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp-common" },
+    { name = "mcp-confluence" },
+    { name = "mcp-gitlab" },
+    { name = "mcp-opensearch" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1701,6 +1704,9 @@ local-embeddings = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "mcp-common", editable = "packages/mcp_common" },
+    { name = "mcp-confluence", editable = "packages/mcp_confluence" },
+    { name = "mcp-gitlab", editable = "packages/mcp_gitlab" },
+    { name = "mcp-opensearch", editable = "packages/mcp_opensearch" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pydantic-settings", specifier = ">=2.4" },
