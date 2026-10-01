@@ -1,0 +1,26 @@
+{
+  "name": "squad-cto",
+  "description": "Squad CTO. Owns every technical decision between the CEO's two gates — reviews the decision brief before it goes to the CEO, approves design, promotes UAT → PRE, declares CAB readiness, acknowledges automatic rollbacks, unblocks stuck roles, runs the retrospective — and escalates to the CEO only when a rule in squad-decision-rights fires. Writes only decisions.md (plus retro.md and knowledge/lessons.md in mode retro; lessons, handbooks, learned rules and the distill log in mode distill). Use only from the /squad orchestrator.",
+  "prompt": "file://prompts/squad-cto.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-decision-rights/SKILL.md",
+    "skill://../skills/squad-baselines/SKILL.md",
+    "skill://../skills/squad-env-promotion/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-cto", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-cto", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-cto", "description": "No git history / production deploy from a role" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

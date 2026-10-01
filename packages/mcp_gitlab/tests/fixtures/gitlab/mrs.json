@@ -1,0 +1,48 @@
+[
+  {
+    "id": 9001,
+    "iid": 12,
+    "project_id": 42,
+    "title": "Retry with backoff",
+    "state": "opened",
+    "draft": false,
+    "source_branch": "feat/retry",
+    "target_branch": "main",
+    "author": {
+      "username": "dana"
+    },
+    "labels": [
+      "payments"
+    ],
+    "created_at": "2026-09-10T08:00:00.000Z",
+    "updated_at": "2026-09-19T08:00:00.000Z",
+    "merged_at": null,
+    "description": "Implements retry.\nSee ticket.",
+    "web_url": "https://gitlab.example.test/team/payment-service/-/merge_requests/12",
+    "references": {
+      "full": "team/payment-service!12"
+    }
+  },
+  {
+    "id": 9001,
+    "iid": 11,
+    "project_id": 42,
+    "title": "Merge hotfix",
+    "state": "merged",
+    "draft": false,
+    "source_branch": "feat/retry",
+    "target_branch": "main",
+    "author": {
+      "username": "dana"
+    },
+    "labels": [],
+    "created_at": "2026-09-10T08:00:00.000Z",
+    "updated_at": "2026-09-19T08:00:00.000Z",
+    "merged_at": "2026-09-01T00:00:00.000Z",
+    "description": null,
+    "web_url": "https://gitlab.example.test/team/payment-service/-/merge_requests/11",
+    "references": {
+      "full": "team/payment-service!11"
+    }
+  }
+]

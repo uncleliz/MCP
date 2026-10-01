@@ -1,0 +1,26 @@
+{
+  "id": 8001,
+  "iid": 7,
+  "project_id": 42,
+  "title": "Retries double-charge",
+  "state": "opened",
+  "author": {
+    "username": "lee"
+  },
+  "assignees": [
+    {
+      "username": "dana"
+    }
+  ],
+  "labels": [
+    "bug"
+  ],
+  "created_at": "2026-09-05T08:00:00.000Z",
+  "updated_at": "2026-09-06T08:00:00.000Z",
+  "closed_at": null,
+  "description": "Seen on prod.",
+  "web_url": "https://gitlab.example.test/team/payment-service/-/issues/7",
+  "references": {
+    "full": "team/payment-service#7"
+  }
+}

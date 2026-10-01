@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "id": "200",
+      "type": "page",
+      "status": "current",
+      "title": "Retry runbook",
+      "version": {
+        "when": "2026-08-20T10:00:00.000Z",
+        "number": 3
+      },
+      "_links": {
+        "webui": "/spaces/PAY/pages/200/Retry+runbook"
+      }
+    },
+    {
+      "id": "201",
+      "type": "page",
+      "status": "current",
+      "title": "Retry FAQ",
+      "version": {
+        "when": "2026-08-21T10:00:00.000Z",
+        "number": 1
+      },
+      "_links": {
+        "webui": "/spaces/PAY/pages/201/Retry+FAQ"
+      }
+    }
+  ],
+  "start": 0,
+  "limit": 25,
+  "size": 2,
+  "_links": {
+    "base": "https://acme.atlassian.net/wiki",
+    "context": "/wiki"
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "basename": "retry",
+    "data": "def retry_payment(payment, attempts=3):\n    for n in range(attempts):\n        if charge(payment):\n            return True\n    return False\n",
+    "path": "src/retry.py",
+    "filename": "src/retry.py",
+    "id": null,
+    "ref": "main",
+    "startline": 12,
+    "project_id": 42
+  },
+  {
+    "basename": "prod",
+    "data": "DB_PASSWORD=hunter2hunter2\n",
+    "path": "config/prod.env",
+    "filename": "config/prod.env",
+    "id": null,
+    "ref": "main",
+    "startline": 1,
+    "project_id": 42
+  },
+  {
+    "basename": "notes",
+    "data": "# retry notes\nretries use backoff\n",
+    "path": "docs/notes.md",
+    "filename": "docs/notes.md",
+    "id": null,
+    "ref": "main",
+    "startline": 3,
+    "project_id": 43
+  }
+]

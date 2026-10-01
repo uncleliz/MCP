@@ -1,0 +1,162 @@
+{
+  "kb_get_document": {
+    "description": "Lấy lại toàn văn một document đã index theo document_id hoặc source_uri, ghép các chunk theo thứ tự. Document không có hoặc đã bị xoá ở nguồn trả not_found; bị cắt theo max_chars thì trả status=partial.",
+    "inputSchema": {
+      "properties": {
+        "document_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Có cả hai thì document_id thắng source_uri.",
+          "title": "Document Id"
+        },
+        "max_chars": {
+          "default": 20000,
+          "maximum": 100000,
+          "minimum": 500,
+          "title": "Max Chars",
+          "type": "integer"
+        },
+        "source_uri": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Uri"
+        }
+      },
+      "title": "kb_get_documentArguments",
+      "type": "object"
+    }
+  },
+  "kb_list_sources": {
+    "description": "Thống kê kho embedding theo nguồn: số document/chunk, lần ingest gần nhất và số giờ đã cũ. Dùng để nêu độ mới của dữ liệu semantic và nguồn nào chưa được index.",
+    "inputSchema": {
+      "properties": {
+        "source_types": {
+          "default": [],
+          "items": {
+            "enum": [
+              "confluence",
+              "gitlab",
+              "opensearch",
+              "kibana",
+              "cloudwatch",
+              "kafka",
+              "redis",
+              "sqs",
+              "sns",
+              "pgvector"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Source Types",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "title": "kb_list_sourcesArguments",
+      "type": "object"
+    }
+  },
+  "kb_semantic_search": {
+    "description": "Tìm đoạn tài liệu đã index (Confluence/GitLab/…) theo ngữ nghĩa và trả chunk kèm source_uri gốc để trích dẫn. status=empty chỉ khi không có gì đủ giống; nếu bộ lọc loại mất kết quả thì warning nói rõ là do bộ lọc.",
+    "inputSchema": {
+      "properties": {
+        "container": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lọc theo space key / project path.",
+          "title": "Container"
+        },
+        "max_chars_per_chunk": {
+          "default": 2000,
+          "maximum": 8000,
+          "minimum": 200,
+          "title": "Max Chars Per Chunk",
+          "type": "integer"
+        },
+        "min_similarity": {
+          "default": 0.3,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min Similarity",
+          "type": "number"
+        },
+        "query": {
+          "maxLength": 4096,
+          "minLength": 3,
+          "title": "Query",
+          "type": "string"
+        },
+        "source_types": {
+          "default": [],
+          "items": {
+            "enum": [
+              "confluence",
+              "gitlab",
+              "opensearch",
+              "kibana",
+              "cloudwatch",
+              "kafka",
+              "redis",
+              "sqs",
+              "sns",
+              "pgvector"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Source Types",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "top_k": {
+          "default": 8,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        },
+        "updated_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated After"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "kb_semantic_searchArguments",
+      "type": "object"
+    }
+  }
+}

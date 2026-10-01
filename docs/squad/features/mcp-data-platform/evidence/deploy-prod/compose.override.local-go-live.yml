@@ -1,0 +1,9 @@
+# Local go-live override (squad-release, 2026-10-01).
+# Reason: the CEO's machine already runs a host-native PostgreSQL 17 on 5432
+# (/Library/PostgreSQL/17). To keep the demo fully isolated and reversible we publish
+# the pgvector/pgvector:pg16 container on host port 5433 instead of 5432.
+# Nothing else changes; `docker compose ... down -v` still fully reverts.
+services:
+  postgres:
+    ports: !override
+      - "5433:5432"

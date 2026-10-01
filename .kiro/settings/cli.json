@@ -1,0 +1,4 @@
+{
+  "chat.enableSubagent": true,
+  "chat.defaultAgent": "squad"
+}

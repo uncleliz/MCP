@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from mcp_common.redact import scrub
 
 
@@ -26,11 +27,7 @@ def test_scrub_env_style_line_is_redacted() -> None:
 
 
 def test_scrub_dotenv_style_multiline_content() -> None:
-    dotenv_content = (
-        "DB_HOST=localhost\n"
-        "DB_PASSWORD=sup3rSecretPass!\n"
-        "API_TOKEN=abcdef1234567890\n"
-    )
+    dotenv_content = "DB_HOST=localhost\nDB_PASSWORD=sup3rSecretPass!\nAPI_TOKEN=abcdef1234567890\n"
     text, count = scrub(dotenv_content)
     assert count >= 2
     assert "sup3rSecretPass!" not in text
@@ -99,9 +96,7 @@ def test_scrub_does_not_flag_short_or_low_entropy_runs() -> None:
 
 
 def test_scrub_count_matches_number_of_distinct_secrets() -> None:
-    text, count = scrub(
-        "AKIAIOSFODNN7EXAMPLE and glpat-AbCdEfGhIjKlMnOpQrSt in the same line"
-    )
+    text, count = scrub("AKIAIOSFODNN7EXAMPLE and glpat-AbCdEfGhIjKlMnOpQrSt in the same line")
     assert count == 2
 
 
@@ -109,3 +104,35 @@ def test_scrub_empty_string_is_noop() -> None:
     text, count = scrub("")
     assert text == ""
     assert count == 0
+
+
+# -- JSON-shaped secrets (found while building the Phase-2 log/Kafka/Redis tools, R4) ----------
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        '{"user":"a","password":"hunter2hunter2"}',
+        '{"api_key": "abcd1234efgh"}',
+        "{'client_secret': 'sup3rs3cretvalue'}",
+        '{"auth": {"accessToken": "tok-abcdef123456"}}',
+        '{"db_password":"p@ss w0rd with space"}',
+    ],
+)
+def test_scrub_redacts_json_key_value_secrets(payload: str) -> None:
+    text, count = scrub(payload)
+    assert count >= 1
+    for leaked in ("hunter2hunter2", "abcd1234efgh", "sup3rs3cretvalue", "tok-abcdef123456",
+                   "p@ss w0rd with space"):  # fmt: skip
+        assert leaked not in text
+
+
+def test_scrub_json_secret_keeps_structure_and_other_fields() -> None:
+    text, _ = scrub('{"user":"alice","password":"hunter2hunter2","n":3}')
+    assert '"user":"alice"' in text and '"n":3' in text and '"password":' in text
+
+
+def test_scrub_json_does_not_touch_non_secret_keys_or_empty_values() -> None:
+    payload = '{"tokenizer":"bert","passwordless":"yes","password":"","note":"ok"}'
+    text, count = scrub(payload)
+    assert count == 0 and text == payload

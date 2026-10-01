@@ -1,0 +1,7 @@
+{
+  "type": "known",
+  "accountId": "abc",
+  "email": "svc-readonly@acme.test",
+  "publicName": "Service RO",
+  "displayName": "Service RO"
+}

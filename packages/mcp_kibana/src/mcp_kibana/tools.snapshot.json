@@ -1,0 +1,173 @@
+{
+  "kibana_build_dashboard_link": {
+    "description": "Dựng deep link tới dashboard với đúng khung thời gian (và query tuỳ chọn). Chỉ xác minh dashboard tồn tại bằng một GET; không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "dashboard_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Dashboard Id",
+          "type": "string"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Query bar KQL/Lucene chèn vào `_a`.",
+          "title": "Query"
+        },
+        "space": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Space id; null = space mặc định.",
+          "title": "Space"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dashboard_id",
+        "time_from",
+        "time_to"
+      ],
+      "title": "kibana_build_dashboard_linkArguments",
+      "type": "object"
+    }
+  },
+  "kibana_find_saved_objects": {
+    "description": "Tìm dashboard, visualization, lens hoặc saved search theo từ khoá. Kết quả có link Kibana; không khớp trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "query": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "space": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Space id; null = space mặc định.",
+          "title": "Space"
+        },
+        "types": {
+          "default": [
+            "dashboard"
+          ],
+          "items": {
+            "enum": [
+              "dashboard",
+              "visualization",
+              "lens",
+              "search",
+              "index-pattern"
+            ],
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "kibana_find_saved_objectsArguments",
+      "type": "object"
+    }
+  },
+  "kibana_get_saved_object": {
+    "description": "Chi tiết một saved object: panel và các object/index pattern liên quan. Dùng để chọn đúng index cho truy vấn OpenSearch; id không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "space": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Space id; null = space mặc định.",
+          "title": "Space"
+        },
+        "type": {
+          "enum": [
+            "dashboard",
+            "visualization",
+            "lens",
+            "search",
+            "index-pattern"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "kibana_get_saved_objectArguments",
+      "type": "object"
+    }
+  }
+}

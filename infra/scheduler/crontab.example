@@ -1,0 +1,17 @@
+# mcp-ingest schedule (T-082). Install with `crontab -e`, after replacing /path/to/MCP.
+# Proposal of the architecture (SA): incremental every hour, full reconcile at 03:00.
+# THRESHOLD TBD (Open question 5, PO confirmation pending): the cadence — the hourly/03:00 values are the
+# defaults used until the freshness bound (NFR-004) is decided.
+#
+# The full run at 03:00 replaces that hour's incremental one (a full run is a superset), so the two
+# never overlap. If a run overruns into the next slot, mcp-ingest exits 3 (source lock held) instead
+# of running twice.
+#
+# Environment comes from ~/.config/mcp-ingest/env (see run-ingest.sh); do not put DSNs or tokens in
+# this file. cron's PATH is minimal: make sure `uv` is reachable (absolute path below if needed).
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin
+
+# m h dom mon dow  command
+0 0-2,4-23 * * *  /path/to/MCP/infra/scheduler/run-ingest.sh incremental
+0 3 * * *         /path/to/MCP/infra/scheduler/run-ingest.sh full

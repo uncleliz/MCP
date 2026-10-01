@@ -1,0 +1,14 @@
+{
+  "id": 900,
+  "iid": 30,
+  "project_id": 42,
+  "sha": "abc1234def",
+  "ref": "main",
+  "status": "failed",
+  "source": "push",
+  "created_at": "2026-09-19T09:10:00.000Z",
+  "updated_at": "2026-09-19T09:20:00.000Z",
+  "web_url": "https://gitlab.example.test/team/payment-service/-/pipelines/900",
+  "duration": 600,
+  "queued_duration": 3
+}

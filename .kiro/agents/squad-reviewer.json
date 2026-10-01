@@ -1,0 +1,23 @@
+{
+  "name": "squad-reviewer",
+  "description": "Squad Reviewer. Runs the ECC reviewers in parallel on the feature's diff, adds contract-conformance and traceability checks, and writes docs/squad/features/<feature>/6-verify/review-report.md. Use only from the /squad orchestrator at stage \"review\".",
+  "prompt": "file://prompts/squad-reviewer.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-reviewer", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-reviewer", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-reviewer", "description": "No git history / production deploy from a role" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

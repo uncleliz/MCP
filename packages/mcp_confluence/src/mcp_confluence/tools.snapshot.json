@@ -1,0 +1,203 @@
+{
+  "confluence_get_page": {
+    "description": "Lấy nội dung đầy đủ của một page theo id, chuẩn hoá sang markdown hoặc text. Nội dung bị cắt theo max_chars và được bọc trong untrusted-content.",
+    "inputSchema": {
+      "properties": {
+        "body_format": {
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "text"
+          ],
+          "title": "Body Format",
+          "type": "string"
+        },
+        "max_chars": {
+          "default": 20000,
+          "maximum": 100000,
+          "minimum": 500,
+          "title": "Max Chars",
+          "type": "integer"
+        },
+        "page_id": {
+          "description": "Id của page.",
+          "pattern": "^[0-9A-Za-z._-]{1,64}$",
+          "title": "Page Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ],
+      "title": "confluence_get_pageArguments",
+      "type": "object"
+    }
+  },
+  "confluence_list_page_children": {
+    "description": "Liệt kê các page con trực tiếp của một page.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_id": {
+          "description": "Id của page.",
+          "pattern": "^[0-9A-Za-z._-]{1,64}$",
+          "title": "Page Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ],
+      "title": "confluence_list_page_childrenArguments",
+      "type": "object"
+    }
+  },
+  "confluence_list_spaces": {
+    "description": "Liệt kê các space Confluence, lọc tuỳ chọn theo key hoặc tên.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lọc theo key/name.",
+          "title": "Query"
+        }
+      },
+      "title": "confluence_list_spacesArguments",
+      "type": "object"
+    }
+  },
+  "confluence_search_pages": {
+    "description": "Tìm page Confluence theo từ khoá, lọc tuỳ chọn theo space, label và thời điểm cập nhật. Trả về page kèm excerpt và URL dùng làm citation. status=empty khi không có page nào khớp.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "include_excerpt": {
+          "default": true,
+          "title": "Include Excerpt",
+          "type": "boolean"
+        },
+        "labels": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Labels",
+          "type": "array"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "query": {
+          "description": "Từ khoá (không phải CQL thô).",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "space_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Giới hạn trong một space.",
+          "title": "Space Key"
+        },
+        "updated_after": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Chỉ page cập nhật sau mốc này (ISO-8601 có tz).",
+          "title": "Updated After"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "confluence_search_pagesArguments",
+      "type": "object"
+    }
+  }
+}

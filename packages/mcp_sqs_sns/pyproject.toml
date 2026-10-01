@@ -1,11 +1,18 @@
 [project]
 name = "mcp-sqs-sns"
 version = "0.1.0"
-description = "Placeholder workspace member for mcp-sqs-sns (implemented in Phase 1/2/3, not in the Setup batch)."
+description = "Read-only MCP server for AWS SQS/SNS metadata (Phase 3, FR-010). Never reads message bodies."
 requires-python = ">=3.12"
 dependencies = [
   "mcp-common",
+  "boto3>=1.35",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
 ]
+
+[project.scripts]
+mcp-sqs-sns = "mcp_sqs_sns.cli:main"
 
 [tool.uv.sources]
 mcp-common = { workspace = true }

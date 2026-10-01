@@ -155,12 +155,22 @@ class BoundedExecutor:
                 },
             )
         loop = asyncio.get_running_loop()
+
+        def worker() -> T:
+            # The slot is freed when the *thread* finishes, not when the awaiting coroutine
+            # is cancelled: `asyncio.timeout` cannot stop a hung SDK call, so releasing on
+            # cancellation would let later calls queue silently behind hung threads (R16).
+            try:
+                return func(*args, **kwargs)
+            finally:
+                self._semaphore.release()
+
         try:
-            return await loop.run_in_executor(
-                self._executor, functools.partial(func, *args, **kwargs)
-            )
-        finally:
-            self._semaphore.release()
+            future = loop.run_in_executor(self._executor, worker)
+        except BaseException:
+            self._semaphore.release()  # the worker never started
+            raise
+        return await future
 
     def shutdown(self, wait: bool = True) -> None:
         self._executor.shutdown(wait=wait)

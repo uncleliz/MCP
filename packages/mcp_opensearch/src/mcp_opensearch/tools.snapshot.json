@@ -1,0 +1,339 @@
+{
+  "opensearch_aggregate": {
+    "description": "Aggregation giới hạn: terms (top giá trị một field) hoặc date_histogram (phân bố theo thời gian). Không nhận aggregation tuỳ ý.",
+    "inputSchema": {
+      "properties": {
+        "agg_type": {
+          "enum": [
+            "terms",
+            "date_histogram"
+          ],
+          "title": "Agg Type",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "index_pattern": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Index Pattern",
+          "type": "string"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "1h",
+                "1d"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bắt buộc khi agg_type=date_histogram.",
+          "title": "Interval"
+        },
+        "query": {
+          "default": "*",
+          "maxLength": 2048,
+          "title": "Query",
+          "type": "string"
+        },
+        "size": {
+          "default": 10,
+          "description": "Chỉ dùng với terms.",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        },
+        "time_field": {
+          "default": "@timestamp",
+          "title": "Time Field",
+          "type": "string"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        },
+        "timeout_s": {
+          "default": 20,
+          "description": "Deadline nội bộ (giây); phải nhỏ hơn deadline của tool.",
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index_pattern",
+        "agg_type",
+        "field",
+        "time_from",
+        "time_to"
+      ],
+      "title": "opensearch_aggregateArguments",
+      "type": "object"
+    }
+  },
+  "opensearch_count": {
+    "description": "Đếm số document khớp query trong khoảng thời gian, để ước lượng quy mô trước khi lấy mẫu. Đếm 0 trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "index_pattern": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Index Pattern",
+          "type": "string"
+        },
+        "query": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "time_field": {
+          "default": "@timestamp",
+          "title": "Time Field",
+          "type": "string"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        },
+        "timeout_s": {
+          "default": 20,
+          "description": "Deadline nội bộ (giây); phải nhỏ hơn deadline của tool.",
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index_pattern",
+        "query",
+        "time_from",
+        "time_to"
+      ],
+      "title": "opensearch_countArguments",
+      "type": "object"
+    }
+  },
+  "opensearch_get_mapping": {
+    "description": "Lấy mapping dạng phẳng field -> type của index. Dùng để viết query đúng field; index không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "field_filter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lọc theo tiền tố tên field.",
+          "title": "Field Filter"
+        },
+        "index": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Index",
+          "type": "string"
+        }
+      },
+      "required": [
+        "index"
+      ],
+      "title": "opensearch_get_mappingArguments",
+      "type": "object"
+    }
+  },
+  "opensearch_list_indices": {
+    "description": "Liệt kê index khớp pattern (mặc định bỏ index hệ thống). Gọi trước khi search để không phải đoán tên index.",
+    "inputSchema": {
+      "properties": {
+        "include_system": {
+          "default": false,
+          "title": "Include System",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "pattern": {
+          "default": "*",
+          "maxLength": 256,
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "title": "opensearch_list_indicesArguments",
+      "type": "object"
+    }
+  },
+  "opensearch_search_dsl": {
+    "description": "Escape hatch chạy query DSL trên _search, chỉ khi người vận hành bật. Chặn script, runtime_mappings, scroll, point_in_time và terms-lookup ở mọi độ sâu.",
+    "inputSchema": {
+      "properties": {
+        "body": {
+          "additionalProperties": true,
+          "title": "Body",
+          "type": "object"
+        },
+        "index_pattern": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Index Pattern",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "timeout_s": {
+          "default": 20,
+          "description": "Deadline nội bộ (giây); phải nhỏ hơn deadline của tool.",
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index_pattern",
+        "body"
+      ],
+      "title": "opensearch_search_dslArguments",
+      "type": "object"
+    }
+  },
+  "opensearch_search_logs": {
+    "description": "Tìm log bằng query_string với khoảng thời gian bắt buộc, phân trang bằng cursor. Mỗi kết quả trích dẫn index, _id và timestamp; không có hit trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Fields",
+          "type": "array"
+        },
+        "highlight": {
+          "default": false,
+          "title": "Highlight",
+          "type": "boolean"
+        },
+        "index_pattern": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Index Pattern",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "query": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "sort_order": {
+          "default": "desc",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "title": "Sort Order",
+          "type": "string"
+        },
+        "time_field": {
+          "default": "@timestamp",
+          "title": "Time Field",
+          "type": "string"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        },
+        "timeout_s": {
+          "default": 20,
+          "description": "Deadline nội bộ (giây); phải nhỏ hơn deadline của tool.",
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index_pattern",
+        "query",
+        "time_from",
+        "time_to"
+      ],
+      "title": "opensearch_search_logsArguments",
+      "type": "object"
+    }
+  }
+}

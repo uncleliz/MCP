@@ -1,0 +1,11 @@
+# Local observation window (CTO D-002, reduced for local go-live) — reconfirm session
+# SLI = container healthchecks + mcp-pgvector doctor liveness (no network listener for stdio servers).
+### sample @ 2026-10-01T14:17:13Z
+  containers healthy: mcp-dev-postgres=healthy mcp-dev-redis=healthy mcp-dev-kafka=healthy mcp-dev-localstack=healthy
+  mcp-pgvector doctor: ok (exit 0)
+--- waiting 60s ---
+### sample @ 2026-10-01T14:18:14Z
+  containers healthy: mcp-dev-postgres=healthy mcp-dev-redis=healthy mcp-dev-kafka=healthy mcp-dev-localstack=healthy
+  mcp-pgvector doctor: ok (exit 0)
+
+VERDICT: no errors, all containers healthy and pgvector server live across the window.

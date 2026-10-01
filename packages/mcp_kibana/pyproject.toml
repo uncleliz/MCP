@@ -1,11 +1,18 @@
 [project]
 name = "mcp-kibana"
 version = "0.1.0"
-description = "Placeholder workspace member for mcp-kibana (implemented in Phase 1/2/3, not in the Setup batch)."
+description = "Read-only MCP server for kibana (Phase 2)."
 requires-python = ">=3.12"
 dependencies = [
   "mcp-common",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
 ]
+
+[project.scripts]
+mcp-kibana = "mcp_kibana.cli:main"
 
 [tool.uv.sources]
 mcp-common = { workspace = true }

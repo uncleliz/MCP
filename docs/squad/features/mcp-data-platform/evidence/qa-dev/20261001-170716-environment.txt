@@ -1,0 +1,12 @@
+# env captured 2026-10-01T10:07:17Z
+docker server: 29.7.2
+throwaway pgvector container: pgvector/pgvector:pg16
+PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+pgvector extension version:
+0.8.6
+--- compose stack ---
+NAME                       IMAGE                     STATUS                        PORTS
+mcp-dev-kafka              apache/kafka:3.7.0        Up About a minute (healthy)   0.0.0.0:9092->9092/tcp, [::]:9092->9092/tcp
+mcp-dev-kafka-autocreate   apache/kafka:3.7.0        Up About a minute             0.0.0.0:9094->9092/tcp, [::]:9094->9092/tcp
+mcp-dev-localstack         localstack/localstack:3   Up About a minute (healthy)   0.0.0.0:4566->4566/tcp, [::]:4566->4566/tcp
+mcp-dev-redis              redis:7                   Up About a minute (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp

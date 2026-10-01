@@ -1,7 +1,7 @@
 # ADR-0010: Embedding provider abstraction + model/dimension mặc định
 
 **Date**: 2026-10-01
-**Status**: proposed — **cần user xác nhận ở Gate B** (provider & model)
+**Status**: proposed — model **tạm thời (provisional)** `BAAI/bge-m3`; chờ số đo thật của spike S2 mới chuyển accepted (xem A1)
 **Deciders**: SA (squad-sa) đề xuất; PO/user quyết (liên quan Open question 5 — chi phí/độ mới)
 
 ## Context
@@ -70,3 +70,28 @@ toàn bộ.
   embed toàn bộ.
 - Khoá cứng số chiều. Giảm thiểu: cột `embedding_model` + `ingest_runs` cho phép re-embed
   theo lô và một script `mcp-ingest reembed`.
+
+## Amendments (reconcile sau implementation Phase 3a, 2026-10-01)
+
+### A1 — Trạng thái: vẫn `proposed`, model provisional `BAAI/bge-m3`
+- Spike S2 ([`docs/spikes/S2-embedding-bakeoff.md`](../spikes/S2-embedding-bakeoff.md)) đã có
+  harness có test (`mcp_ingest.bakeoff`, `scripts/bakeoff_embedding.py`) nhưng **chưa đo** được
+  `bge-m3` lẫn `multilingual-e5-large`: egress tới `huggingface.co`/`cdn-lfs.huggingface.co` bị
+  policy chặn (403). Không có số recall/latency/RAM nào là số đo thật.
+- Vì vậy ADR này **không** được chuyển `accepted`. `BAAI/bge-m3` (1024d, cosine, normalize) là
+  mặc định **tạm thời** để code và test chạy được; điều kiện đóng: chạy S2 trên dữ liệu thật
+  (gỡ chặn HF hoặc nạp model offline, `HF_HUB_OFFLINE=1`) và ghi kết quả vào S2.
+- Đổi sang `multilingual-e5-large` sau này không đổi schema (cùng 1024d), chỉ cần `reembed`.
+
+### A2 — Cấu hình chia sẻ, chốt theo bản đã implement
+- Một bộ biến **`MCP_INGEST_EMBEDDING_*`** (`PROVIDER`, `MODEL`, `DIMENSIONS`, `NORMALIZE`,
+  `MAX_INPUT_TOKENS`, `BATCH_SIZE`, `DEVICE`, `URL`, `API_KEY`/`API_KEY_FILE`) dùng chung cho
+  `mcp-ingest` và `mcp-pgvector` — hai bên phải embed trong cùng không gian vector.
+- `mcp-pgvector` có một override duy nhất `MCP_PGVECTOR_EMBEDDING_MODEL` (cùng chuỗi `model_id`
+  như đã lưu trong `kb.chunks`), chỉ cho server đó.
+- Module embedding (`mcp_ingest.embedding`) **không bao giờ import `psycopg`** (và không import
+  gì của pipeline ghi), để `mcp-pgvector` dùng lại được mà không kéo theo đường ghi DB — có test
+  kiến trúc kiểm.
+- `mcp-pgvector` **từ chối serve** khi `model_id` hoặc `dimensions` cấu hình khác dữ liệu đã lưu
+  (startup check, cùng chỗ với check read-only ADR-0003 A1), thông báo yêu cầu `mcp-ingest
+  reembed` — không bao giờ so vector khác không gian.

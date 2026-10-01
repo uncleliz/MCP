@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 import yaml
+from mcp_common.contract_testing import find_contract_path
 from mcp_common.errors import (
     ErrorCode,
     NotPermittedError,
@@ -19,7 +20,9 @@ from mcp_common.errors import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CONTRACT_PATH = REPO_ROOT / "docs" / "squad" / "mcp-data-platform" / "api-contract.yaml"
+# Resolve via the central helper so the squad layout migration (contract moved into
+# `features/.../4-design/`) does not need every test file patched (R-fix: CI path).
+CONTRACT_PATH = find_contract_path()
 
 
 def _fake_exception(module: str, qualname: str, *args: object, **attrs: object) -> Exception:
@@ -252,3 +255,51 @@ def test_every_error_code_round_trips_through_envelope(code: ErrorCode) -> None:
     error = ToolError(code, "msg", "none", False)
     envelope = to_error_envelope(error)
     assert envelope["error"]["code"] == code.value
+
+
+# ---------------------------------------------------------------------------
+# R-003: error envelopes must be scrubbed — the message/details can embed a raw
+# SDK exception (`_NON_HTTPX_SDK_RULES`'s `f"Postgres operational error: {exc}"` etc.)
+# ---------------------------------------------------------------------------
+
+
+def test_R_003_to_error_envelope_scrubs_secret_shaped_message() -> None:
+    exc = _fake_exception(
+        "psycopg",
+        "OperationalError",
+        "connection to server failed: FATAL: password authentication failed "
+        "for user 'ingest' (dsn: postgresql://ingest:glpat-abcdefghijklmnopqrst@db.internal)",
+    )
+    error = map_exception_to_tool_error(exc, source="pgvector", host="db.internal")
+
+    envelope = to_error_envelope(error)
+
+    assert "glpat-abcdefghijklmnopqrst" not in envelope["error"]["message"]
+    assert "«redacted:" in envelope["error"]["message"]
+
+
+def test_R_003_to_error_envelope_scrubs_secret_shaped_details() -> None:
+    error = ToolError(
+        ErrorCode.UPSTREAM_ERROR,
+        "boto3 ClientError",
+        "sqs",
+        True,
+        details={
+            "host": "sqs.internal",
+            "hint": "token=AKIAIOSFODNN7EXAMPLE still valid, rotate it",
+            "nested": {"values": ["ok", "api_key: super-secret-value-123456"]},
+        },
+    )
+
+    envelope = to_error_envelope(error)
+
+    details = envelope["error"]["details"]
+    assert "AKIAIOSFODNN7EXAMPLE" not in details["hint"]
+    assert "super-secret-value-123456" not in details["nested"]["values"][1]
+    assert details["host"] == "sqs.internal"  # ordinary structured values pass through
+
+
+def test_R_003_to_error_envelope_does_not_mangle_ordinary_messages() -> None:
+    error = ToolError(ErrorCode.UPSTREAM_TIMEOUT, "timeout khi gọi upstream", "confluence", True)
+    envelope = to_error_envelope(error)
+    assert envelope["error"]["message"] == "timeout khi gọi upstream"

@@ -1,0 +1,28 @@
+{
+  "name": "squad-sa",
+  "description": "Squad Solution Architect. Mode \"options\" builds at least three costed solution options (options.md) before the CEO decides; mode \"design\" designs architecture.md, ADRs and the api-contract.yaml for the approved option, then gets an ecc:architect design review. Use only from the /squad orchestrator.",
+  "prompt": "file://prompts/squad-sa.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-baselines/SKILL.md",
+    "skill://../../vendor/ecc/skills/contract-first/SKILL.md",
+    "skill://../../vendor/ecc/skills/api-design/SKILL.md",
+    "skill://../../vendor/ecc/skills/architecture-decision-records/SKILL.md",
+    "skill://../skills/squad-options-analysis/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-sa", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-sa", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-sa", "description": "No git history / production deploy from a role" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

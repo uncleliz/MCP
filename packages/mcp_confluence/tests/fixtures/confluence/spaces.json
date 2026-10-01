@@ -1,0 +1,41 @@
+{
+  "results": [
+    {
+      "id": 10,
+      "key": "PAY",
+      "name": "Payments",
+      "type": "global",
+      "status": "current",
+      "_links": {
+        "webui": "/spaces/PAY"
+      }
+    },
+    {
+      "id": 11,
+      "key": "~dana",
+      "name": "Dana Nguyen",
+      "type": "personal",
+      "status": "current",
+      "_links": {
+        "webui": "/spaces/~dana"
+      }
+    },
+    {
+      "id": 12,
+      "key": "KB",
+      "name": "Knowledge",
+      "type": "knowledge_base",
+      "status": "current",
+      "_links": {
+        "webui": "/spaces/KB"
+      }
+    }
+  ],
+  "start": 0,
+  "limit": 25,
+  "size": 3,
+  "_links": {
+    "base": "https://acme.atlassian.net/wiki",
+    "context": "/wiki"
+  }
+}

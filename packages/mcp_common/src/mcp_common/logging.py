@@ -24,6 +24,8 @@ import sys
 from datetime import UTC, datetime
 from typing import Any, TextIO
 
+from mcp_common.redact import scrub
+
 __all__ = [
     "STANDARD_LOG_FIELDS",
     "JSONStderrFormatter",
@@ -60,15 +62,21 @@ class JSONStderrFormatter(logging.Formatter):
     """
 
     def format(self, record: logging.LogRecord) -> str:
+        # R-003: `scrub()`'s documented guarantee covers "every log record" — applied
+        # here, the single formatter every server's log handler goes through, so no
+        # call site has to remember to scrub before logging (defense in depth: no
+        # current call site logs a raw secret, but this is the structural guarantee).
+        message, _ = scrub(record.getMessage())
         payload: dict[str, Any] = {
             "ts": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
-            "message": record.getMessage(),
+            "message": message,
         }
         for field in STANDARD_LOG_FIELDS:
             payload[field] = getattr(record, field, None)
         if record.exc_info:
-            payload["exc_info"] = self.formatException(record.exc_info)
+            exc_text, _ = scrub(self.formatException(record.exc_info))
+            payload["exc_info"] = exc_text
         return json.dumps(payload, default=str)
 
 

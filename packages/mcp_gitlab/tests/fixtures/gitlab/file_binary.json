@@ -1,0 +1,12 @@
+{
+  "file_name": "logo.png",
+  "file_path": "img/logo.png",
+  "size": 12,
+  "encoding": "base64",
+  "content": "UE5HAAECYmluYXJ5",
+  "content_sha256": "x",
+  "ref": "main",
+  "blob_id": "b1",
+  "commit_id": "c1",
+  "last_commit_id": "abc1234def5678"
+}

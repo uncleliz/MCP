@@ -1,0 +1,24 @@
+[
+  {
+    "id": 42,
+    "name": "payment-service",
+    "path_with_namespace": "team/payment-service",
+    "description": "Payments API",
+    "web_url": "https://gitlab.example.test/team/payment-service",
+    "default_branch": "main",
+    "visibility": "private",
+    "last_activity_at": "2026-09-20T10:00:00.000Z",
+    "archived": false
+  },
+  {
+    "id": 43,
+    "name": "ledger",
+    "path_with_namespace": "team/ledger",
+    "description": null,
+    "web_url": "https://gitlab.example.test/team/ledger",
+    "default_branch": "master",
+    "visibility": "internal",
+    "last_activity_at": "2026-09-18T10:00:00.000+07:00",
+    "archived": false
+  }
+]

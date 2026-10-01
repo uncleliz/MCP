@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -51,6 +52,8 @@ __all__ = [
     "warn_if_tool_name_matches_deny_regex",
     "assert_all_calls_readonly",
     "readonly_respx_router",
+    "VirtualClock",
+    "virtual_http_clock",
 ]
 
 # Demoted to a warning-only heuristic by ADR-0003 A2 — it false-positived on
@@ -222,3 +225,37 @@ def readonly_respx_router() -> Iterator[respx.MockRouter]:
     with respx.mock(assert_all_called=False) as router:
         yield router
         assert_all_calls_readonly(router)
+
+
+class VirtualClock:
+    """A fake monotonic clock for `mcp_common.http`'s retry budget.
+
+    Lets NFR-002 tests assert the real ADR-0006 A2 arithmetic (`2 * (3 + 7) + 1 = 21s < 25s`)
+    without sleeping 21 real seconds: the simulated endpoint calls :meth:`advance` by the
+    time a real attempt would burn, and backoff sleeps advance the clock instead of waiting.
+    """
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.sleeps: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+    async def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+@pytest.fixture
+def virtual_http_clock(monkeypatch: pytest.MonkeyPatch) -> VirtualClock:
+    """Swap `mcp_common.http`'s `time`/`asyncio.sleep` for a :class:`VirtualClock`."""
+    import mcp_common.http as http_module
+
+    clock = VirtualClock()
+    monkeypatch.setattr(http_module, "time", SimpleNamespace(monotonic=clock.monotonic))
+    monkeypatch.setattr(http_module, "asyncio", SimpleNamespace(sleep=clock.sleep))
+    return clock

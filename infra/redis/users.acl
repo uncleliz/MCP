@@ -1,2 +1,2 @@
 user default on nopass ~* &* +@all
-user mcp_ro on >mcp_ro_dev_password ~* -@all +get +mget +strlen +getrange +type +ttl +pttl +exists +scan +hget +hmget +hgetall +hscan +hlen +lrange +llen +smembers +sscan +scard +zrange +zcard +xrange +xlen +xinfo +object|encoding +memory|usage +dbsize +info +acl|whoami +acl|getuser
+user mcp_ro on >mcp_ro_dev_password ~* -@all +get +mget +strlen +getrange +type +ttl +pttl +exists +scan +hget +hmget +hgetall +hscan +hlen +lrange +llen +smembers +sscan +scard +zrange +zcard +xrange +xlen +xinfo +object|encoding +memory|usage +dbsize +info +acl|whoami +acl|getuser +select

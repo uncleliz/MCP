@@ -1,0 +1,26 @@
+{
+  "name": "squad-backend",
+  "description": "Squad Backend engineer. Implements the BE tasks of implementation-plan.md against api-contract.yaml with TDD (unit + integration tests), writing only under backend/. Use only from the /squad orchestrator at stage \"backend\".",
+  "prompt": "file://prompts/squad-backend.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../../vendor/ecc/skills/tdd-workflow/SKILL.md",
+    "skill://../../vendor/ecc/skills/backend-patterns/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-backend", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-backend", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-backend", "description": "No git history / production deploy from a role" },
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-test-guard.sh", "description": "Never skip/focus/silence a test" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

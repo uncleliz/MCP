@@ -1,0 +1,51 @@
+{
+  "name": "squad",
+  "description": "Squad Delivery Manager (OPC Kit). The CEO (user) gives a goal; the squad researches, builds >=3 options and a plan for CEO approval (Gate 1), then runs autonomously under the CTO's technical decisions through design, build, test, UAT and PRE, requests CAB go-live approval (Gate 2), deploys, watches and auto-rolls back. Switch to this agent (or run the @squad prompt) to start, continue, or check a squad feature.",
+  "prompt": "file://../prompts/squad-delivery-manager.md",
+  "tools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "grep",
+    "glob",
+    "code",
+    "use_subagent",
+    "use_aws",
+    "web_search",
+    "web_fetch"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob",
+    "code",
+    "execute_bash"
+  ],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["squad-*"],
+      "trustedAgents": ["squad-*"]
+    }
+  },
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad/SKILL.md",
+    "skill://../skills/squad-tracks/SKILL.md",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-decision-rights/SKILL.md",
+    "skill://../skills/squad-layout/SKILL.md",
+    "skill://../skills/squad-knowledge/SKILL.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      { "command": ".kiro/hooks/squad-session-start.sh", "description": "List squad features still in progress" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh", "description": "Layout, ownership, append-only ledgers, no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh", "description": "No force-push / --no-verify; env locks; production guard" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

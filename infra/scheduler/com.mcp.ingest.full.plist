@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  Daily full reconcile (tombstones documents that disappeared from the sources, safety valve at 80%).
+  THRESHOLD TBD (Open question 5, PO confirmation pending): cadence.
+-->
+<dict>
+	<key>Label</key>
+	<string>com.mcp.ingest.full</string>
+	<key>LowPriorityIO</key>
+	<true/>
+	<key>Nice</key>
+	<integer>10</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/path/to/MCP/infra/scheduler/run-ingest.sh</string>
+		<string>full</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>StandardErrorPath</key>
+	<string>/tmp/mcp-ingest.launchd.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/mcp-ingest.launchd.out.log</string>
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Hour</key>
+		<integer>3</integer>
+		<key>Minute</key>
+		<integer>0</integer>
+	</dict>
+	<key>WorkingDirectory</key>
+	<string>/path/to/MCP</string>
+</dict>
+</plist>

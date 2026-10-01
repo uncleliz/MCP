@@ -1,0 +1,246 @@
+{
+  "sns_get_topic_attributes": {
+    "description": "Thuộc tính một SNS topic: số subscription, FIFO, delivery policy. ARN không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "topic_arn": {
+          "maxLength": 512,
+          "pattern": "^arn:aws[a-zA-Z-]*:sns:",
+          "title": "Topic Arn",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic_arn"
+      ],
+      "title": "sns_get_topic_attributesArguments",
+      "type": "object"
+    }
+  },
+  "sns_list_subscriptions_by_topic": {
+    "description": "Liệt kê subscription của một SNS topic để lần theo đường đi của message (fan-out tới queue/endpoint nào). Topic chưa có subscription trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "topic_arn": {
+          "maxLength": 512,
+          "pattern": "^arn:aws[a-zA-Z-]*:sns:",
+          "title": "Topic Arn",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic_arn"
+      ],
+      "title": "sns_list_subscriptions_by_topicArguments",
+      "type": "object"
+    }
+  },
+  "sns_list_topics": {
+    "description": "Liệt kê SNS topic, lọc theo tiền tố tên trong ARN.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "name_prefix": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Prefix"
+        }
+      },
+      "title": "sns_list_topicsArguments",
+      "type": "object"
+    }
+  },
+  "sqs_get_queue_attributes": {
+    "description": "Thuộc tính một queue: số message xấp xỉ, ARN, dead-letter queue, retention. Queue không tồn tại trả not_found; không bao giờ đọc nội dung message.",
+    "inputSchema": {
+      "properties": {
+        "include_tags": {
+          "default": false,
+          "title": "Include Tags",
+          "type": "boolean"
+        },
+        "queue_name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Name"
+        },
+        "queue_url": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Có cả hai thì queue_url thắng queue_name.",
+          "title": "Queue Url"
+        }
+      },
+      "title": "sqs_get_queue_attributesArguments",
+      "type": "object"
+    }
+  },
+  "sqs_list_dead_letter_source_queues": {
+    "description": "Liệt kê các queue dùng queue này làm dead-letter queue, để biết DLQ đang hứng message từ đâu. Không queue nào trỏ tới thì trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "queue_name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Name"
+        },
+        "queue_url": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Url"
+        }
+      },
+      "title": "sqs_list_dead_letter_source_queuesArguments",
+      "type": "object"
+    }
+  },
+  "sqs_list_queues": {
+    "description": "Liệt kê SQS queue theo tiền tố tên. Chỉ trả metadata (tên, URL, ARN), không đọc nội dung message.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "name_prefix": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Prefix"
+        }
+      },
+      "title": "sqs_list_queuesArguments",
+      "type": "object"
+    }
+  }
+}

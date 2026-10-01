@@ -1,0 +1,5 @@
+docs/squad/knowledge/business-baseline.md
+docs/squad/knowledge/platform-baseline.md
+scripts/squad/deploy.sh
+scripts/squad/rollback.sh
+scripts/squad/smoke.sh

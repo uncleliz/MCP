@@ -1,0 +1,65 @@
+{
+  "results": [
+    {
+      "id": "1",
+      "type": "page",
+      "status": "current",
+      "title": "Sample",
+      "space": {
+        "id": 10,
+        "key": "PAY",
+        "name": "Payments",
+        "type": "global",
+        "_links": {
+          "webui": "/spaces/PAY"
+        }
+      },
+      "version": {
+        "by": {
+          "type": "known",
+          "displayName": "Dana Nguyen",
+          "accountId": "abc"
+        },
+        "when": "2026-09-01T08:30:00.000Z",
+        "number": 7
+      },
+      "metadata": {
+        "labels": {
+          "results": [
+            {
+              "name": "payments",
+              "prefix": "global"
+            },
+            {
+              "name": "retry",
+              "prefix": "global"
+            }
+          ],
+          "size": 2
+        }
+      },
+      "_links": {
+        "webui": "/spaces/PAY/pages/1/Sample",
+        "self": "https://acme.atlassian.net/wiki/rest/api/content/1",
+        "tinyui": "/x/abc"
+      },
+      "_expandable": {},
+      "operations": [
+        {
+          "operation": "read",
+          "targetType": "page"
+        },
+        {
+          "operation": "use",
+          "targetType": "space"
+        }
+      ]
+    }
+  ],
+  "start": 0,
+  "limit": 1,
+  "size": 1,
+  "_links": {
+    "base": "https://acme.atlassian.net/wiki"
+  }
+}

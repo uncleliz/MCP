@@ -1,0 +1,22 @@
+{
+  "name": "squad-lead",
+  "description": "Squad Tech Lead. Breaks architecture.md + api-contract.yaml into an ordered, owner-tagged implementation-plan.md grounded in the existing codebase. Use only from the /squad orchestrator at stage \"lead\".",
+  "prompt": "file://prompts/squad-lead.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-lead", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-lead", "description": "Role ownership + layout + append-only + no secrets" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}
