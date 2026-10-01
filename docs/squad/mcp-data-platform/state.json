@@ -143,6 +143,12 @@
       "stage": "frontend",
       "result": "skipped: no tasks",
       "note": "Backend-only project."
+    },
+    {
+      "at": "2026-10-01T05:30:00+07:00",
+      "stage": "qa-verify",
+      "result": "stopped_by_user",
+      "note": "User out of cloud credit; stopped QA verify run 1 mid-way to resume locally. On disk (committed as WIP): e2e/{conftest,harness,test_journeys_e2e,test_opensearch_dsl_e2e,test_pgvector_ingest_e2e,test_stdio_readonly_e2e}.py and the TC-076 wording fix in test-cases.md. regression-report.md NOT written. Orchestrator ran `pytest e2e -x`: 31 passed, then 1 failed — e2e/test_stdio_readonly_e2e.py::test_TC_069_stdout_carries_only_jsonrpc_frames[confluence] with ValueError 'I/O operation on closed file' at subprocess.communicate (test closes stdin then calls communicate) — looks like a test-harness bug (likely class test-flaky/test bug, not backend), unconfirmed; rest of e2e not run after -x. On resume: re-dispatch squad-qa mode verify run 1, telling it the e2e files exist, to fix/triage that failure, finish the run and write regression-report.md."
     }
   ],
   "base_ref": "0f5c20e",
