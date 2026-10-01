@@ -1064,9 +1064,9 @@ paths:
           (stored script/template), hoặc `terms.<field>.index` (terms-lookup — đọc index khác
           `index_pattern`, thoát khỏi phạm vi index).
         * Phân trang (reconciled 2026-10-01): `body.size` ∈ 0..100 và `body.from` ∈ 0..900
-          (ngoài khoảng → `invalid_argument`); `size` mặc định = `limit` và nếu `size > limit`
+          (ngoài khoảng → `invalid_input`); `size` mặc định = `limit` và nếu `size > limit`
           thì bị **kẹp** xuống `limit` kèm `meta.warnings`; `from + size ≤ 1000` (chặn deep
-          paging → `invalid_argument`, gợi ý `search_after`). `from` KHÔNG bị ép ≤ `limit`.
+          paging → `invalid_input`, gợi ý `search_after`). `from` KHÔNG bị ép ≤ `limit`.
         * Client đặt `timeout=<timeout_s>s` trong body gửi đi (timeout phía cluster).
           `search.allow_expensive_queries` là **cluster setting** (không có tham số
           per-request) nên không phải guardrail của tool này; nếu cần, người vận hành đặt nó ở
@@ -2920,7 +2920,7 @@ components:
         Project **bắt buộc** cho các tool chi tiết (`gitlab_get_file`, `gitlab_list_repository_tree`,
         `gitlab_list_commits`, `gitlab_get_merge_request`, `gitlab_get_issue`, `gitlab_list_pipelines`,
         `gitlab_get_pipeline`): `path_with_namespace` (khuyến nghị, ví dụ `team/payment-service`)
-        hoặc numeric id dạng **string**. Không có default; `null` không hợp lệ (→ `invalid_argument`).
+        hoặc numeric id dạng **string**. Không có default; `null` không hợp lệ (→ `invalid_input`).
     GitLabProjectScope:
       type: [string, "null"]
       maxLength: 512

@@ -146,7 +146,7 @@ call trả `error.code=forbidden` (không bao giờ trả kết quả thiếu ta
   mặc định: `mcp-opensearch` 5 tool, Phase 2 = 24 tool, toàn hệ = 48 tool (bật flag: 6/25/49).
 - **Phân trang**: `size` ∈ 0..100, mặc định = `limit`, `size > limit` bị **kẹp** về `limit`
   (kèm warning); `from` ∈ 0..900 (không bị ép ≤ `limit`); `from + size ≤ 1000`; vượt ⇒
-  `invalid_argument` (gợi ý `search_after`). Câu cũ "`size`/`from` bị ép ≤ `limit`" bị thay.
+  `invalid_input` (gợi ý `search_after`). Câu cũ "`size`/`from` bị ép ≤ `limit`" bị thay.
 - **`search.allow_expensive_queries`**: là **cluster setting**, không có tham số per-request ⇒
   bỏ khỏi guardrail của tool (câu cũ không implement được). Guardrail thực sự là deny-list đệ
   quy (A2 + ADR-0003 A3) cộng `timeout` phía cluster đặt từ `timeout_s`. Nếu muốn chặn query
