@@ -50,6 +50,17 @@ _LABELED_SECRET_PATTERN = re.compile(
     """
 )
 
+# JSON/dict-shaped secrets: `"password": "value"`, `'client_secret': 'value'`, `"apiKey": ".."`.
+# The key must *end* with a sensitive word (so `tokenizer`/`passwordless` are left alone) and the
+# value must be a quoted string of at least 4 characters. Structure and other fields are kept.
+_JSON_SECRET_PATTERN = re.compile(
+    r"""(?ix)
+    (["'][A-Za-z0-9_\-]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key|credentials?)["']
+    \s*:\s*)
+    (["'])([^"']{4,})\2
+    """
+)
+
 # Long, no-whitespace runs that *might* be a secret even without a recognisable
 # shape or label — only flagged if they also look sufficiently random (see
 # `_looks_high_entropy`), to limit false positives on plain long identifiers.
@@ -98,6 +109,14 @@ def scrub(text: str, *, disabled: bool = False) -> tuple[str, int]:
         return f"{match.group(1)}={_REDACTED.format(kind='credential')}"
 
     result = _LABELED_SECRET_PATTERN.sub(_replace_labeled, result)
+
+    def _replace_json_secret(match: re.Match[str]) -> str:
+        nonlocal count
+        count += 1
+        quote = match.group(2)
+        return f"{match.group(1)}{quote}{_REDACTED.format(kind='credential')}{quote}"
+
+    result = _JSON_SECRET_PATTERN.sub(_replace_json_secret, result)
 
     def _replace_high_entropy(match: re.Match[str]) -> str:
         nonlocal count

@@ -1,11 +1,18 @@
 [project]
 name = "mcp-opensearch"
 version = "0.1.0"
-description = "Placeholder workspace member for mcp-opensearch (implemented in Phase 1/2/3, not in the Setup batch)."
+description = "Read-only MCP server for opensearch (Phase 2)."
 requires-python = ">=3.12"
 dependencies = [
   "mcp-common",
+  "opensearch-py[async]>=2.6,<4",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
 ]
+
+[project.scripts]
+mcp-opensearch = "mcp_opensearch.cli:main"
 
 [tool.uv.sources]
 mcp-common = { workspace = true }

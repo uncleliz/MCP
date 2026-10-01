@@ -1,0 +1,506 @@
+{
+  "cloudwatch_describe_alarm_history": {
+    "description": "Lịch sử chuyển trạng thái của một alarm trong khoảng thời gian, để dựng timeline. Alarm không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "alarm_name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Alarm Name",
+          "type": "string"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "history_item_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "ConfigurationUpdate",
+                "StateUpdate",
+                "Action"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "StateUpdate",
+          "title": "History Item Type"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "alarm_name",
+        "time_from",
+        "time_to"
+      ],
+      "title": "cloudwatch_describe_alarm_historyArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_describe_alarms": {
+    "description": "Liệt kê alarm và trạng thái hiện tại theo tiền tố hoặc state. Không có alarm nào khớp trả status=empty để nêu rõ khoảng trống.",
+    "inputSchema": {
+      "properties": {
+        "alarm_name_prefix": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alarm Name Prefix"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "state_value": {
+          "anyOf": [
+            {
+              "enum": [
+                "OK",
+                "ALARM",
+                "INSUFFICIENT_DATA"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State Value"
+        }
+      },
+      "title": "cloudwatch_describe_alarmsArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_filter_log_events": {
+    "description": "Lọc log event trong một log group theo pattern và khoảng thời gian bắt buộc. Log group không tồn tại trả not_found; không có event trả status=empty.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "filter_pattern": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CloudWatch filter pattern, ví dụ `?ERROR ?Exception`.",
+          "title": "Filter Pattern"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "log_group_name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Log Group Name",
+          "type": "string"
+        },
+        "log_stream_name_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Stream Name Prefix"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "log_group_name",
+        "time_from",
+        "time_to"
+      ],
+      "title": "cloudwatch_filter_log_eventsArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_get_metric_data": {
+    "description": "Lấy chuỗi datapoint của một metric trong khoảng thời gian. Metric không tồn tại trả not_found; tồn tại nhưng không có datapoint trả status=empty.",
+    "inputSchema": {
+      "$defs": {
+        "Dimension": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "maxLength": 255,
+              "title": "Name",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 1024,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "value"
+          ],
+          "title": "Dimension",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "dimensions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Dimension"
+          },
+          "maxItems": 10,
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "metric_name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Metric Name",
+          "type": "string"
+        },
+        "namespace": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "period_s": {
+          "default": 300,
+          "enum": [
+            60,
+            300,
+            900,
+            3600,
+            21600,
+            86400
+          ],
+          "title": "Period S",
+          "type": "integer"
+        },
+        "stat": {
+          "default": "Average",
+          "enum": [
+            "Average",
+            "Sum",
+            "Minimum",
+            "Maximum",
+            "SampleCount",
+            "p50",
+            "p90",
+            "p95",
+            "p99"
+          ],
+          "title": "Stat",
+          "type": "string"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "metric_name",
+        "time_from",
+        "time_to"
+      ],
+      "title": "cloudwatch_get_metric_dataArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_list_log_groups": {
+    "description": "Liệt kê log group theo tiền tố. Dùng để phân giải tên log group thật trước khi lọc log.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "name_prefix": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Prefix"
+        }
+      },
+      "title": "cloudwatch_list_log_groupsArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_list_metrics": {
+    "description": "Liệt kê metric đang tồn tại (namespace, tên, dimension). Dùng để chọn đúng namespace và dimension trước khi lấy datapoint.",
+    "inputSchema": {
+      "$defs": {
+        "Dimension": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "maxLength": 255,
+              "title": "Name",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 1024,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "value"
+          ],
+          "title": "Dimension",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "dimensions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Dimension"
+          },
+          "maxItems": 10,
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "metric_name_prefix": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric Name Prefix"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "title": "cloudwatch_list_metricsArguments",
+      "type": "object"
+    }
+  },
+  "cloudwatch_run_logs_insights": {
+    "description": "Chạy truy vấn Logs Insights chỉ đọc (fields, filter, stats, sort, limit, parse, dedup, display) và trả các hàng kết quả. Hết timeout_s thì dừng query và trả status=partial.",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "log_group_names": {
+          "items": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Log Group Names",
+          "type": "array"
+        },
+        "query": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "time_from": {
+          "format": "date-time",
+          "title": "Time From",
+          "type": "string"
+        },
+        "time_to": {
+          "format": "date-time",
+          "title": "Time To",
+          "type": "string"
+        },
+        "timeout_s": {
+          "default": 20,
+          "description": "Deadline nội bộ (giây); phải nhỏ hơn deadline của tool.",
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "log_group_names",
+        "query",
+        "time_from",
+        "time_to"
+      ],
+      "title": "cloudwatch_run_logs_insightsArguments",
+      "type": "object"
+    }
+  }
+}

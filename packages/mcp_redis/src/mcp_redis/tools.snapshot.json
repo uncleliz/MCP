@@ -1,0 +1,163 @@
+{
+  "redis_get_key": {
+    "description": "Đọc giá trị một key theo đúng kiểu dữ liệu, đã redaction và cắt theo element_limit/max_bytes. Key không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "db": {
+          "default": 0,
+          "maximum": 15,
+          "minimum": 0,
+          "title": "Db",
+          "type": "integer"
+        },
+        "element_limit": {
+          "default": 100,
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Element Limit",
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "redis_get_keyArguments",
+      "type": "object"
+    }
+  },
+  "redis_key_info": {
+    "description": "Metadata của key (kiểu, TTL, encoding, bộ nhớ, độ dài) mà không trả giá trị. Dùng trước redis_get_key khi key có thể rất lớn.",
+    "inputSchema": {
+      "properties": {
+        "db": {
+          "default": 0,
+          "maximum": 15,
+          "minimum": 0,
+          "title": "Db",
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "redis_key_infoArguments",
+      "type": "object"
+    }
+  },
+  "redis_scan_keys": {
+    "description": "Quét key theo pattern bằng SCAN có cursor, không chặn server. Key khớp deny-glob bị loại và được đếm trong cảnh báo.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "db": {
+          "default": 0,
+          "maximum": 15,
+          "minimum": 0,
+          "title": "Db",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "pattern": {
+          "default": "*",
+          "maxLength": 512,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "type_filter": {
+          "anyOf": [
+            {
+              "enum": [
+                "string",
+                "list",
+                "set",
+                "zset",
+                "hash",
+                "stream"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type Filter"
+        }
+      },
+      "title": "redis_scan_keysArguments",
+      "type": "object"
+    }
+  },
+  "redis_server_info": {
+    "description": "Thông tin server theo section (memory, clients, keyspace) cùng DBSIZE và ACL user đang dùng. readonly_confirmed cho biết credential có chỉ đọc hay không.",
+    "inputSchema": {
+      "properties": {
+        "sections": {
+          "default": [
+            "server",
+            "memory",
+            "clients",
+            "keyspace"
+          ],
+          "items": {
+            "enum": [
+              "server",
+              "clients",
+              "memory",
+              "persistence",
+              "stats",
+              "replication",
+              "keyspace"
+            ],
+            "type": "string"
+          },
+          "maxItems": 7,
+          "title": "Sections",
+          "type": "array"
+        }
+      },
+      "title": "redis_server_infoArguments",
+      "type": "object"
+    }
+  }
+}

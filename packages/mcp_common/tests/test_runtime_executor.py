@@ -96,3 +96,31 @@ async def test_host_hint_is_included_in_upstream_unavailable_details() -> None:
     release_event.set()
     await first
     executor.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_R16_slot_stays_occupied_while_a_cancelled_calls_thread_is_still_running() -> None:
+    """The deadline cancels the awaiting coroutine, not the hung SDK thread: the slot must be
+    released by the *thread* finishing, otherwise capacity is double-counted and later calls
+    silently queue behind the hung threads (R16, found while building T-045/T-048)."""
+    executor = BoundedExecutor(max_workers=2)
+    release_event = threading.Event()
+    hung = [
+        asyncio.ensure_future(
+            executor.run(_block_until_released, release_event, source="cloudwatch")
+        )
+        for _ in range(2)
+    ]
+    await asyncio.sleep(0.05)
+    for task in hung:
+        task.cancel()  # e.g. asyncio.timeout expired
+    await asyncio.gather(*hung, return_exceptions=True)
+
+    with pytest.raises(ToolError) as exc_info:  # threads are still blocked -> still saturated
+        await executor.run(_block_until_released, release_event, source="cloudwatch")
+    assert exc_info.value.code == ErrorCode.UPSTREAM_UNAVAILABLE
+
+    release_event.set()  # the hung threads finally finish
+    await asyncio.sleep(0.1)
+    assert await executor.run(_block_until_released, release_event, source="cloudwatch") == "done"
+    executor.shutdown()

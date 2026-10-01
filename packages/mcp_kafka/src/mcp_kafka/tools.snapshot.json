@@ -1,0 +1,221 @@
+{
+  "kafka_describe_consumer_group": {
+    "description": "Chi tiết consumer group kèm lag theo từng partition (committed offset so với high watermark). Group không tồn tại trả not_found.",
+    "inputSchema": {
+      "properties": {
+        "group_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "include_members": {
+          "default": true,
+          "title": "Include Members",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "group_id"
+      ],
+      "title": "kafka_describe_consumer_groupArguments",
+      "type": "object"
+    }
+  },
+  "kafka_describe_topic": {
+    "description": "Metadata chi tiết một topic: partition, replica, config, watermark và số message xấp xỉ. Topic không tồn tại trả not_found và không bao giờ tạo topic.",
+    "inputSchema": {
+      "properties": {
+        "include_configs": {
+          "default": true,
+          "title": "Include Configs",
+          "type": "boolean"
+        },
+        "topic": {
+          "maxLength": 249,
+          "minLength": 1,
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic"
+      ],
+      "title": "kafka_describe_topicArguments",
+      "type": "object"
+    }
+  },
+  "kafka_list_consumer_groups": {
+    "description": "Liệt kê consumer group khớp pattern, lọc tuỳ chọn theo state.",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "pattern": {
+          "default": "*",
+          "maxLength": 256,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "states": {
+          "default": [],
+          "items": {
+            "enum": [
+              "PreparingRebalance",
+              "CompletingRebalance",
+              "Stable",
+              "Dead",
+              "Empty",
+              "Unknown"
+            ],
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "States",
+          "type": "array"
+        }
+      },
+      "title": "kafka_list_consumer_groupsArguments",
+      "type": "object"
+    }
+  },
+  "kafka_list_topics": {
+    "description": "Liệt kê topic khớp pattern glob (mặc định bỏ topic nội bộ).",
+    "inputSchema": {
+      "properties": {
+        "include_internal": {
+          "default": false,
+          "title": "Include Internal",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "pattern": {
+          "default": "*",
+          "description": "Glob trên tên topic.",
+          "maxLength": 256,
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "title": "kafka_list_topicsArguments",
+      "type": "object"
+    }
+  },
+  "kafka_peek_messages": {
+    "description": "Đọc mẫu message mà không commit offset và không tham gia consumer group. Value đã redaction và bọc untrusted-content; vượt max_bytes trả status=partial.",
+    "inputSchema": {
+      "properties": {
+        "from": {
+          "default": "latest",
+          "description": "`latest` = n message cuối; `offset`/`timestamp` cần field tương ứng.",
+          "enum": [
+            "latest",
+            "earliest",
+            "offset",
+            "timestamp"
+          ],
+          "title": "From",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "max_bytes": {
+          "default": 65536,
+          "description": "Trần byte cho nội dung tự do; min(max_bytes, MCP_MAX_OUTPUT_BYTES).",
+          "maximum": 131072,
+          "minimum": 1024,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Offset dạng string (có thể vượt 2^53).",
+          "title": "Offset"
+        },
+        "partition": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "null = lấy đều từ mọi partition.",
+          "title": "Partition"
+        },
+        "timeout_s": {
+          "default": 20,
+          "maximum": 22,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        },
+        "topic": {
+          "maxLength": 249,
+          "minLength": 1,
+          "title": "Topic",
+          "type": "string"
+        },
+        "value_format": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "json",
+            "utf8",
+            "base64"
+          ],
+          "title": "Value Format",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic"
+      ],
+      "title": "kafka_peek_messagesArguments",
+      "type": "object"
+    }
+  }
+}

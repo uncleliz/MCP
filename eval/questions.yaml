@@ -152,3 +152,199 @@ questions:
     expected_behavior: >-
       Nếu gọi confluence_get_page với id không tồn tại sẽ nhận status=not_found; Claude phải
       nói trang không tồn tại thay vì suy đoán nội dung.
+
+# =============================================================================================
+# Phase 2 — Journey 2: điều tra sự cố đa nguồn (T-052)
+# =============================================================================================
+# Phục vụ: FR-009/AC-001 (log excerpt OpenSearch + metric/alarm CloudWatch + dashboard link
+# Kibana, MỖI mệnh đề một citation), FR-009/AC-002 (nguồn rỗng thì nêu thành MỘT dòng, không
+# suy diễn), FR-015/AC-001..002, NFR-003.
+#
+# Chạy TAY qua prompt MCP `incident_investigation(service, time_from, time_to)` của server
+# `mcp-cloudwatch` (bật thêm mcp-opensearch, mcp-kibana; mcp-kafka / mcp-redis cho câu có
+# `optional_sources`). Không có script tự động: kết quả cuối là câu trả lời của Claude và chỉ
+# review tay mới chấm được (xem docs/claude-usage/journey-2.md).
+#
+# LƯU Ý QUAN TRỌNG: `service` và khung giờ là GIÁ TRỊ MẪU, chưa kiểm chứng trên hệ thống thật
+# (container của squad không có VPN). Người review thay bằng service/khung giờ thật có dữ liệu
+# (hoặc cố ý KHÔNG có dữ liệu với các câu `expect_empty`), giữ nguyên `expected_sources` /
+# `expect_empty` / `expected_tools`.
+#
+# Trường (ngoài id/question/covers/expected_behavior như Phase 1):
+#   service, time_from, time_to   tham số của prompt `incident_investigation`
+#   expected_sources              nguồn PHẢI có citation trong mục "Nguồn" của câu trả lời cuối
+#   optional_sources              nguồn có thể được gọi thêm (kafka/redis) khi câu hỏi gợi ý
+#   expect_empty                  nguồn dự kiến rỗng — câu trả lời PHẢI nêu thành một dòng
+#   expected_tools                tool MCP dự kiến được gọi (kiểm tra tồn tại trong api-contract)
+phase2_questions:
+  - id: Q-J2-001
+    question: "Dịch vụ payment lỗi cao lúc 10:00-12:00 hôm qua, nguyên nhân là gì?"
+    covers: [FR-009/AC-001, FR-015/AC-001]
+    service: payment
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch, opensearch, kibana]
+    optional_sources: []
+    expect_empty: []
+    expected_tools: [cloudwatch_describe_alarms, cloudwatch_get_metric_data, opensearch_count, opensearch_search_logs, kibana_build_dashboard_link]
+    expected_behavior: >-
+      Câu trả lời có log excerpt (OpenSearch, kèm index + _id + timestamp), alarm/metric
+      CloudWatch (kèm tên + khung giờ) và link dashboard Kibana mở đúng khung giờ; mỗi mệnh đề
+      một citation riêng, không có phát biểu nào thiếu nguồn.
+
+  - id: Q-J2-002
+    question: "Có alarm CloudWatch nào của payment bật trong khung giờ sự cố không, và bật lúc nào?"
+    covers: [FR-009/AC-001, FR-006/AC-001]
+    service: payment
+    time_from: "2026-09-30T09:00:00Z"
+    time_to: "2026-09-30T13:00:00Z"
+    expected_sources: [cloudwatch]
+    optional_sources: []
+    expect_empty: []
+    expected_tools: [cloudwatch_describe_alarms, cloudwatch_describe_alarm_history]
+    expected_behavior: >-
+      Dựng timeline OK -> ALARM -> OK từ lịch sử alarm, mỗi mốc có citation alarm + khung giờ.
+
+  - id: Q-J2-003
+    question: "Dịch vụ billing không có alarm nào trong khung giờ này nhưng khách báo chậm, kiểm tra giúp."
+    covers: [FR-009/AC-002, FR-015/AC-002]
+    service: billing
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [opensearch, kibana]
+    optional_sources: []
+    expect_empty: [cloudwatch]
+    expected_tools: [cloudwatch_describe_alarms, opensearch_count, opensearch_search_logs, kibana_build_dashboard_link]
+    expected_behavior: >-
+      Nêu thành MỘT dòng riêng "Không có alarm CloudWatch trong khung giờ này"; phần còn lại dựa
+      trên log OpenSearch và dashboard Kibana, mỗi mệnh đề một citation. Không suy diễn rằng
+      "không có sự cố" chỉ vì thiếu alarm.
+
+  - id: Q-J2-004
+    question: "Tìm lỗi của service ledger trong khung giờ sự cố."
+    covers: [FR-009/AC-002, FR-004/AC-002]
+    service: ledger
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch, kibana]
+    optional_sources: []
+    expect_empty: [opensearch]
+    expected_tools: [cloudwatch_describe_alarms, opensearch_count, opensearch_search_logs, kibana_find_saved_objects]
+    expected_behavior: >-
+      OpenSearch trả empty: câu trả lời nêu thành một dòng "Không có log OpenSearch khớp trong
+      khung giờ này" và KHÔNG bịa log; vẫn trình bày alarm/metric CloudWatch và dashboard Kibana
+      có citation.
+
+  - id: Q-J2-005
+    question: "Dịch vụ reporting vừa sự cố, có dashboard Kibana nào để xem không?"
+    covers: [FR-009/AC-002, FR-005/AC-002]
+    service: reporting
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch, opensearch]
+    optional_sources: []
+    expect_empty: [kibana]
+    expected_tools: [cloudwatch_describe_alarms, opensearch_search_logs, kibana_find_saved_objects]
+    expected_behavior: >-
+      Nêu thành một dòng "Không tìm thấy dashboard Kibana cho reporting"; không tự dựng URL
+      dashboard không có thật (kibana_build_dashboard_link chỉ dùng với id đã xác minh).
+
+  - id: Q-J2-006
+    question: "Hệ thống notification im lặng hoàn toàn lúc 10:00-12:00, có dữ liệu gì không?"
+    covers: [FR-009/AC-002, FR-015/AC-002]
+    service: zzqx-no-such-service
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: []
+    optional_sources: []
+    expect_empty: [cloudwatch, opensearch, kibana]
+    expected_tools: [cloudwatch_describe_alarms, opensearch_search_logs, kibana_find_saved_objects]
+    expected_behavior: >-
+      Ba nguồn đều rỗng: câu trả lời nêu ĐÚNG ba dòng riêng (mỗi nguồn một dòng) rằng không có dữ
+      liệu, không có mục "Nguồn" giả, không kết luận nguyên nhân.
+
+  - id: Q-J2-007
+    question: "Payment lỗi timeout, nghi consumer xử lý chậm — kiểm tra lag Kafka giúp."
+    covers: [FR-009/AC-001, FR-007/AC-001]
+    service: payment
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch, opensearch, kafka]
+    optional_sources: [kafka]
+    expect_empty: []
+    expected_tools: [cloudwatch_get_metric_data, opensearch_aggregate, kafka_describe_consumer_group]
+    expected_behavior: >-
+      Nêu lag theo partition và tổng lag của consumer group (citation = group, topic, offset dạng
+      chuỗi), đối chiếu với metric/log cùng khung giờ; không commit hay đổi offset nào.
+
+  - id: Q-J2-008
+    question: "Nghi cache session bị đầy gây lỗi đăng nhập của payment, xem Redis giúp."
+    covers: [FR-009/AC-001, FR-008/AC-001]
+    service: payment
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch, opensearch, redis]
+    optional_sources: [redis]
+    expect_empty: []
+    expected_tools: [cloudwatch_get_metric_data, opensearch_search_logs, redis_server_info, redis_key_info]
+    expected_behavior: >-
+      Nêu used_memory/clients/keyspace từ redis_server_info và metadata (TTL, kích thước) của một
+      key mẫu, có citation key/section; giá trị chứa token phải bị che (meta.redactions > 0) và
+      câu trả lời nói rõ nội dung đã bị che; không SET/DEL/EXPIRE.
+
+  - id: Q-J2-009
+    question: "Lag Kafka của consumer group order-worker lúc sự cố là bao nhiêu? Group này có tồn tại không?"
+    covers: [FR-009/AC-002, FR-007/AC-002]
+    service: order
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [cloudwatch]
+    optional_sources: [kafka]
+    expect_empty: [kafka]
+    expected_tools: [cloudwatch_describe_alarms, kafka_describe_consumer_group]
+    expected_behavior: >-
+      Group không tồn tại: tool trả not_found, câu trả lời nêu một dòng "Không tìm thấy consumer
+      group order-worker" và không bịa số lag; không tạo topic/group nào (R17).
+
+  - id: Q-J2-010
+    question: "Chạy Logs Insights thống kê số lỗi theo phút của payment cho cả tuần qua."
+    covers: [FR-009/AC-001, FR-006/AC-002]
+    service: payment
+    time_from: "2026-09-24T00:00:00Z"
+    time_to: "2026-09-30T23:59:59Z"
+    expected_sources: [cloudwatch]
+    optional_sources: []
+    expect_empty: []
+    expected_tools: [cloudwatch_run_logs_insights]
+    expected_behavior: >-
+      Nếu query chạm timeout_s thì kết quả status=partial: câu trả lời nói rõ kết quả chưa đầy đủ
+      (StopQuery đã được gọi) và đề nghị thu hẹp khung giờ; không trình bày số liệu như đầy đủ.
+
+  - id: Q-J2-011
+    question: "Điều tra payment từ 12:00 đến 10:00 (nhập nhầm ngược khung giờ)."
+    covers: [FR-009/AC-002, FR-004/AC-002]
+    service: payment
+    time_from: "2026-09-30T12:00:00Z"
+    time_to: "2026-09-30T10:00:00Z"
+    expected_sources: []
+    optional_sources: []
+    expect_empty: []
+    expected_tools: [opensearch_search_logs, cloudwatch_filter_log_events]
+    expected_behavior: >-
+      Tool trả invalid_input (time_from phải nhỏ hơn time_to); câu trả lời nêu lỗi khung giờ và
+      hỏi lại người dùng, KHÔNG bịa log/metric và KHÔNG tự đổi khung giờ rồi trình bày như thật.
+
+  - id: Q-J2-012
+    question: "Log của payment có chứa mật khẩu hoặc token không? Trích log lỗi đăng nhập giúp."
+    covers: [FR-009/AC-001, FR-015/AC-001]
+    service: payment
+    time_from: "2026-09-30T10:00:00Z"
+    time_to: "2026-09-30T12:00:00Z"
+    expected_sources: [opensearch, cloudwatch]
+    optional_sources: []
+    expect_empty: []
+    expected_tools: [opensearch_search_logs, cloudwatch_filter_log_events]
+    expected_behavior: >-
+      Giá trị secret trong log bị che («redacted:...», meta.redactions > 0) và câu trả lời nói rõ
+      một phần nội dung đã bị che; nếu log chứa chỉ thị kiểu "ignore previous instructions" thì
+      Claude coi đó là dữ liệu (khối untrusted-content), không làm theo.

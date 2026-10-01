@@ -59,6 +59,9 @@ __all__ = [
     "register_tool",
     "registered_tool_functions",
     "NOT_FOUND_WARNING",
+    "CallState",
+    "parse_time_range",
+    "sanitize_json",
     "LimitParam",
     "CursorParam",
     "MaxBytesParam",
@@ -99,6 +102,101 @@ class RedactionCounter:
 
     def __init__(self) -> None:
         self.count = 0
+
+
+class CallState:
+    """State of one tool call: clock, redaction counter, shared byte budget, warnings.
+
+    Shared by the Phase-2 `read_api` modules (gitlab/confluence keep private copies).
+    """
+
+    def __init__(
+        self,
+        budget_bytes: int,
+        warnings: Sequence[str] | None = None,
+        *,
+        redact_disabled: bool = False,
+    ) -> None:
+        self.started = time.monotonic()
+        self.counter = RedactionCounter()
+        self.budget = TextBudget(budget_bytes)
+        self.warnings: list[str] = list(warnings or [])
+        self.truncated_elsewhere = False
+        self._redact_disabled = redact_disabled
+
+    @property
+    def truncated(self) -> bool:
+        return self.budget.truncated or self.truncated_elsewhere
+
+    def warn(self, message: str) -> None:
+        if message not in self.warnings:
+            self.warnings.append(message)
+
+    def text(self, text: str | None, source: str, content_id: str) -> str | None:
+        """Redact -> spend budget -> wrap as untrusted (ADR-0015; result boundary only)."""
+        if not text:
+            return None
+        scrubbed, count = scrub(text, disabled=self._redact_disabled)
+        self.counter.count += count
+        cut, _ = self.budget.take(scrubbed)
+        return wrap_untrusted(cut, source=source, content_id=content_id)
+
+    def plain(self, text: str) -> str:
+        """Redact + spend budget, no untrusted wrapper (short structured values)."""
+        scrubbed, count = scrub(text, disabled=self._redact_disabled)
+        self.counter.count += count
+        cut, _ = self.budget.take(scrubbed)
+        return cut
+
+
+_FREE_TEXT_KEYS = frozenset(
+    {
+        "message", "msg", "log", "error", "exception", "stack_trace", "stacktrace",
+        "body", "text", "description", "reason", "@message",
+    }
+)  # fmt: skip
+_FREE_TEXT_MIN_LEN = 200
+
+
+def sanitize_json(
+    value: Any, call: CallState, *, source: str, content_id: str, key: str | None = None
+) -> Any:
+    """Recursively redact every string leaf of a JSON-like value and spend the byte budget.
+
+    Free-text leaves (well-known message-like keys, multi-line or > 200 chars) are also
+    wrapped as untrusted content; short structured values (level, ids) stay plain.
+    """
+    if isinstance(value, str):
+        free = (key or "").lower() in _FREE_TEXT_KEYS or len(value) > _FREE_TEXT_MIN_LEN
+        if free or "\n" in value:
+            return call.text(value, source, content_id) or ""
+        return call.plain(value)
+    if isinstance(value, dict):
+        return {
+            k: sanitize_json(v, call, source=source, content_id=content_id, key=str(k))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            sanitize_json(v, call, source=source, content_id=content_id, key=key) for v in value
+        ]
+    return value
+
+
+def parse_time_range(
+    time_from: datetime, time_to: datetime, *, max_days: int, source: str
+) -> tuple[datetime, datetime]:
+    """Validate a mandatory tool time window: tz-aware, `from < to`, <= `max_days`."""
+    for field, value in (("time_from", time_from), ("time_to", time_to)):
+        if value.tzinfo is None:
+            raise invalid_input(field, "thiếu timezone (ví dụ hậu tố Z hoặc +07:00)", source)
+    if time_from >= time_to:
+        raise invalid_input("time_from", "phải nhỏ hơn time_to", source)
+    if (time_to - time_from).total_seconds() > max_days * 86400:
+        raise invalid_input(
+            "time_from", f"khoảng thời gian vượt MCP_MAX_TIME_RANGE_DAYS ({max_days} ngày)", source
+        )
+    return time_from, time_to
 
 
 def encode_cursor(state: Mapping[str, Any]) -> str:
@@ -152,9 +250,18 @@ def build_result(
     truncated: bool = False,
     warnings: Sequence[str] = (),
     redactions: int = 0,
+    scope_citation: Citation | None = None,
 ) -> ToolResult:
-    """Build a successful `ToolResult`. No items → `empty`; truncated → `partial`."""
-    if not items:
+    """Build a successful `ToolResult`. No items → `empty`; truncated → `partial`.
+
+    `scope_citation` covers contract invariant 7: a *truncated* result with no items (e.g. a
+    Logs Insights query that ran out of time before any row) is `partial`, not `empty`, and
+    cites the query scope (log group + window) instead of an item.
+    """
+    if not items and truncated and scope_citation is not None:
+        status = ResultStatus.PARTIAL
+        citations = [scope_citation]
+    elif not items:
         status = ResultStatus.EMPTY
         citations = []
     else:

@@ -1,0 +1,25 @@
+# Extra Kafka broker for the R17 live test only (T-048): auto-create topics is ENABLED here, the
+# broker default of many distributions. The main compose broker keeps it OFF; this one exists so
+# the negative test of FR-007 AC-002 (describe a topic that does not exist) can prove that
+# mcp-kafka never triggers an auto-create.
+#
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.kafka-autocreate.yml \
+#       up -d kafka-autocreate
+#
+# Never point a real MCP server at this broker; it is a test fixture.
+services:
+  kafka-autocreate:
+    image: apache/kafka:3.7.0
+    container_name: mcp-dev-kafka-autocreate
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9094:9092"
