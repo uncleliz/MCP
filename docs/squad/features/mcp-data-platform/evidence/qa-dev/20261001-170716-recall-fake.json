@@ -1,0 +1,9 @@
+{
+  "top_k": 10,
+  "queries": 50,
+  "mean_recall": 1.0,
+  "min_recall": 1.0,
+  "hnsw_index_used": true,
+  "threshold": 0.95,
+  "passed": true
+}

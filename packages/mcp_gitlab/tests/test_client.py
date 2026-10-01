@@ -127,6 +127,34 @@ def test_deny_glob_allows_ordinary_paths(client: GitLabClient, path: str) -> Non
     assert not client.is_path_denied(path)
 
 
+# ---- R-002: deny-glob was too narrow (fnmatch-verified false negatives) ------------
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ".env.local",
+        ".env.production",
+        "config/.env.staging",
+        "id_ed25519",
+        "home/.ssh/id_ed25519.pub",
+        "certs/server.key",
+        "sa.p12",
+        "client.pfx",
+        "truststore.jks",
+        ".npmrc",
+        ".netrc",
+        "terraform.tfstate",
+        "env/terraform.tfstate.backup",
+        "prod.tfvars",
+    ],
+)
+def test_R_002_deny_glob_blocks_previously_missed_secret_filenames(
+    client: GitLabClient, path: str
+) -> None:
+    assert client.is_path_denied(path)
+
+
 @pytest.mark.asyncio
 async def test_FR_002_AC_003_get_file_on_denied_path_never_hits_network(
     client: GitLabClient, readonly_respx_router: respx.MockRouter
@@ -229,3 +257,64 @@ async def test_client_uses_settings_base_url(common: CommonSettings) -> None:
         await other.get_project("1")
         assert route.called
     assert BASE != "https://git.corp.test"
+
+
+# ---- R-001: job-trace download has a hard byte cap --------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_job_trace_passes_through_when_within_cap(
+    client: GitLabClient, readonly_respx_router: respx.MockRouter
+) -> None:
+    body = "line one\nline two\n"
+    readonly_respx_router.get(f"{API}/projects/42/jobs/5001/trace").mock(
+        return_value=httpx.Response(200, text=body)
+    )
+    trace = await client.get_job_trace("42", "5001")
+    assert trace == body
+
+
+@pytest.mark.asyncio
+async def test_get_job_trace_over_cap_raises_response_too_large(
+    common: CommonSettings, readonly_respx_router: respx.MockRouter
+) -> None:
+    settings = Settings(
+        base_url=BASE,
+        private_token=SecretStr("glpat-not-a-real-token-000000"),
+        max_job_trace_bytes=16,
+    )
+    small_cap_client = GitLabClient(settings, common=common)
+    big_body = "x" * 1024
+    readonly_respx_router.get(f"{API}/projects/42/jobs/5001/trace").mock(
+        return_value=httpx.Response(200, text=big_body)
+    )
+
+    with pytest.raises(ToolError) as exc:
+        await small_cap_client.get_job_trace("42", "5001")
+
+    assert exc.value.code == ErrorCode.RESPONSE_TOO_LARGE
+    assert exc.value.details["max_bytes"] == 16
+    assert readonly_respx_router.calls.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_job_trace_cap_enforced_even_if_content_length_lies(
+    common: CommonSettings, readonly_respx_router: respx.MockRouter
+) -> None:
+    """A `Content-Length` header is upstream-controlled and may be wrong/absent
+    (chunked transfer-encoding); the byte-counting fallback must catch it too."""
+    settings = Settings(
+        base_url=BASE,
+        private_token=SecretStr("glpat-not-a-real-token-000000"),
+        max_job_trace_bytes=16,
+    )
+    small_cap_client = GitLabClient(settings, common=common)
+    big_body = b"y" * 1024
+    readonly_respx_router.get(f"{API}/projects/42/jobs/5001/trace").mock(
+        return_value=httpx.Response(200, content=big_body, headers={"Content-Length": "4"})
+    )
+
+    with pytest.raises(ToolError) as exc:
+        await small_cap_client.get_job_trace("42", "5001")
+
+    assert exc.value.code == ErrorCode.RESPONSE_TOO_LARGE

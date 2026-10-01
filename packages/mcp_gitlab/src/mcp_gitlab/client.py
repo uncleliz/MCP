@@ -6,7 +6,8 @@ protect the ingest path, not just the tools); tool bounds live in `read_api.py`.
 
 Read-only guarantees in this file:
 * every call goes through :meth:`GitLabClient.get` / :meth:`GitLabClient.get_text`, which
-  check the operation against :data:`ALLOWED_OPERATIONS` (GET only);
+  check the operation against :data:`ALLOWED_OPERATIONS` (GET only); `get_text` additionally
+  streams with a hard download cap (`max_bytes`, R-001) instead of buffering the whole body;
 * the `httpx.AsyncClient` comes from `mcp_common.http.build_client`, whose transport hook
   refuses any non-GET/HEAD request (ADR-0003 A2);
 * the startup check refuses tokens with any scope beyond `read_api` / `read_repository`.
@@ -22,7 +23,12 @@ from urllib.parse import quote
 
 import httpx
 from mcp_common.config import CommonSettings
-from mcp_common.errors import ErrorCode, NotPermittedError, ToolError
+from mcp_common.errors import (
+    ErrorCode,
+    NotPermittedError,
+    ToolError,
+    map_exception_to_tool_error,
+)
 from mcp_common.http import build_client, request_with_retry
 from mcp_common.readonly import enforce
 
@@ -207,8 +213,55 @@ class GitLabClient:
         operation: str,
         path_params: Mapping[str, str] | None = None,
         params: Mapping[str, Any] | None = None,
+        *,
+        max_bytes: int | None = None,
     ) -> str:
-        return (await self._request(operation, path_params, params)).text
+        """GET and return the body as text, with a hard download cap (R-001).
+
+        Unlike :meth:`get`, this streams the response and aborts the moment either
+        the declared `Content-Length` or the actual bytes read cross `max_bytes`
+        (default `CommonSettings.max_output_bytes`), raising
+        `ErrorCode.RESPONSE_TOO_LARGE`. Without this, a multi-hundred-MB body (e.g. a
+        chatty CI job trace) would be buffered whole in RAM before any caller ever
+        gets a chance to truncate it — a `Content-Length` check alone is not enough
+        since it is attacker/upstream-controlled and chunked responses may omit it.
+        """
+        enforce(ALLOWED_OPERATIONS, operation, source=SOURCE)
+        path = operation.removeprefix("GET ").format(
+            **{k: _q(v) for k, v in (path_params or {}).items()}
+        )
+        cap = self._common.max_output_bytes if max_bytes is None else max_bytes
+        url = f"{self._settings.base_url}{path}"
+
+        def _too_large(size: int) -> ToolError:
+            return ToolError(
+                ErrorCode.RESPONSE_TOO_LARGE,
+                f"Response vượt trần {cap} byte (đã đọc ít nhất {size} byte).",
+                SOURCE,
+                False,
+                details={"max_bytes": cap, "host": self._host},
+            )
+
+        try:
+            async with self.http.stream(
+                "GET", url, params=_clean(params or {})
+            ) as response:
+                response.raise_for_status()
+                content_length = response.headers.get("Content-Length", "").strip()
+                if content_length.isdigit() and int(content_length) > cap:
+                    raise _too_large(int(content_length))
+                chunks: list[bytes] = []
+                total = 0
+                async for chunk in response.aiter_bytes():
+                    total += len(chunk)
+                    if total > cap:
+                        raise _too_large(total)
+                    chunks.append(chunk)
+        except httpx.HTTPStatusError as exc:
+            raise map_exception_to_tool_error(exc, source=SOURCE, host=self._host) from exc
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.NetworkError) as exc:
+            raise map_exception_to_tool_error(exc, source=SOURCE, host=self._host) from exc
+        return b"".join(chunks).decode("utf-8", errors="replace")
 
     # -- typed operations (no tool bounds here; see module docstring) ------------------
 
@@ -347,7 +400,11 @@ class GitLabClient:
         return list(response.data)
 
     async def get_job_trace(self, project: str, job_id: str) -> str:
-        return await self.get_text(OP_JOB_TRACE, {"id": project, "jid": job_id})
+        return await self.get_text(
+            OP_JOB_TRACE,
+            {"id": project, "jid": job_id},
+            max_bytes=self._settings.max_job_trace_bytes,
+        )
 
     # -- startup credential check ------------------------------------------------------
 

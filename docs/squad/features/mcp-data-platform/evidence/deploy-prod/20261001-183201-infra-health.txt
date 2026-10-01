@@ -1,0 +1,26 @@
+# Infra health snapshot @ 2026-10-01T11:32:01Z
+## docker compose ps
+NAME                 IMAGE                     COMMAND                  SERVICE      CREATED             STATUS                       PORTS
+mcp-dev-kafka        apache/kafka:3.7.0        "/__cacert_entrypoin…"   kafka        About an hour ago   Up About an hour (healthy)   0.0.0.0:9092->9092/tcp, [::]:9092->9092/tcp
+mcp-dev-localstack   localstack/localstack:3   "docker-entrypoint.sh"   localstack   About an hour ago   Up About an hour (healthy)   0.0.0.0:4566->4566/tcp, [::]:4566->4566/tcp
+mcp-dev-postgres     pgvector/pgvector:pg16    "docker-entrypoint.s…"   postgres     19 seconds ago      Up 18 seconds (healthy)      0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+mcp-dev-redis        redis:7                   "docker-entrypoint.s…"   redis        About an hour ago   Up About an hour (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+
+## images / versions
+pgvector/pgvector:pg16
+redis:7
+apache/kafka:3.7.0
+localstack/localstack:3
+
+## postgres: pgvector available
+vector|0.8.6
+## redis ping (admin)
+PONG
+## kafka topics (auto-create off expected)
+__consumer_offsets
+mcp-it-0041a257
+mcp-it-49d77514
+mcp-it-60fc2e0d
+mcp-it-d0a19b3c
+## localstack health
+{"services": {"acm": "disabled", "apigateway": "disabled", "cloudformation": "disabled", "cloudwatch": "disabled", "config": "disabled", "dynamodb": "disabled", "dynamodbstreams": "disabled", "ec2": "disabled", "es": "disabled", "events": "disabled", "firehose": "disabled", "iam": "disabled", "kinesis": "disabled", "kms": "disabled", "lambda": "disabled", "logs": "disabled", "opensearch": "disabled", "redshift": "disabled", "resource-groups": "disabled", "resourcegroupstaggingapi": "disabled", "route53": "disabled", "route53resolver": "disabled", "s3": "disabled", "s3control": "disabled", "scheduler": "disabled", "secretsmanager": "disabled", "ses": "disabled", "sns": "running", "sqs": "running", "ssm": "disabled", "stepfunctions": "disabled", "sts": "disabled", "support": "disabled", "swf": "disabled", "transcribe": "disabled"}, "edition": "community", "version": "3.8.1"}

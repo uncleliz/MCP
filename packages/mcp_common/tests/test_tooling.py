@@ -213,6 +213,29 @@ async def test_register_tool_unexpected_exception_is_internal() -> None:
 
 
 @pytest.mark.asyncio
+async def test_R_003_register_tool_error_envelope_scrubs_secret_in_message() -> None:
+    """End-to-end: a `ToolError` whose message embeds a raw upstream secret (as
+    `_NON_HTTPX_SDK_RULES` builds for psycopg/redis/boto3) must come back scrubbed in
+    both the rendered text and `structuredContent` — the envelope is the only place
+    the tool boundary can still enforce the redaction guarantee for error paths."""
+
+    async def demo_tool(query: str) -> ToolOutcome:
+        raise ToolError(
+            ErrorCode.UPSTREAM_UNAVAILABLE,
+            "Postgres operational error: connection to server failed: FATAL: password "
+            "authentication failed for user 'ingest' (token=glpat-abcdefghijklmnopqrst)",
+            "pgvector",
+            True,
+        )
+
+    res = await _call(_server(demo_tool), "demo_tool", {"query": "q"})
+    assert res.isError
+    assert "glpat-abcdefghijklmnopqrst" not in res.structuredContent["error"]["message"]
+    assert "glpat-abcdefghijklmnopqrst" not in res.content[0].text
+    assert "«redacted:" in res.structuredContent["error"]["message"]
+
+
+@pytest.mark.asyncio
 async def test_register_tool_deadline_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MCP_TOOL_DEADLINE_DEMO_TOOL", "0.05")
 

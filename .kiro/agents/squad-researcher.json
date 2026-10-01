@@ -1,0 +1,25 @@
+{
+  "name": "squad-researcher",
+  "description": "Squad Market & Technology Researcher. Surveys existing solutions (internal assets, open source, commercial, build) for the CEO's goal and writes a sourced docs/squad/features/<feature>/1-discovery/market-research.md — full depth on the full track, light (reuse-first) on the lean track. Use only from the /squad orchestrator at stage \"research\".",
+  "prompt": "file://prompts/squad-researcher.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash", "web_search", "web_fetch"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../../vendor/ecc/skills/market-research/SKILL.md",
+    "skill://../../vendor/ecc/skills/competitive-platform-analysis/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-researcher", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-researcher", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-researcher", "description": "No git history / production deploy from a role" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

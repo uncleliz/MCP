@@ -31,3 +31,12 @@ venv/
 
 # Docker / local infra state
 infra/**/data/
+# opc-init
+.kiro/squad/notify.local.env
+.kiro/squad/backup/
+.kiro/worktrees/
+.kiro/squad/worktree.env
+.kiro/squad/coord/
+
+# Squad install backups (R-027)
+.claude/squad/backup/

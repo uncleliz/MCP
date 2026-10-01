@@ -115,7 +115,10 @@ def test_TC_069_stdout_carries_only_jsonrpc_frames(key):
             if "id" in frame:
                 lines.append(proc.stdout.readline())
     finally:
-        proc.stdin.close()
+        # Let communicate() close stdin itself (it flushes, then closes since input=None):
+        # closing stdin here first would make communicate()'s own flush raise
+        # "ValueError: I/O operation on closed file" on CPython 3.12 (its flush() there does
+        # not swallow ValueError for an already-closed stream).
         try:
             _, stderr = proc.communicate(timeout=30)
         except subprocess.TimeoutExpired:

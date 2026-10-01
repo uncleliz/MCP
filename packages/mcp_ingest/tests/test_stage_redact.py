@@ -74,6 +74,25 @@ def test_deny_globs_come_from_the_gitlab_env_with_the_adr_default(monkeypatch) -
     assert deny_globs_from_env() == ["*.key", "*.token"]
 
 
+def test_R_002_adr_default_catches_previously_missed_secret_filenames(monkeypatch) -> None:
+    """mcp_ingest reuses mcp_gitlab's DEFAULT_PATH_DENY verbatim (R-002): the original
+    list only matched names *ending* in a sensitive suffix, so `.env.local`,
+    `id_ed25519`, `*.key`, `*.p12`, `.npmrc` and `*.tfstate` all slipped through."""
+    monkeypatch.delenv("MCP_GITLAB_PATH_DENY", raising=False)
+    globs = deny_globs_from_env()
+    for path in (
+        ".env.local",
+        ".env.production",
+        "config/.env.staging",
+        "id_ed25519",
+        "certs/server.key",
+        "sa.p12",
+        ".npmrc",
+        "terraform.tfstate",
+    ):
+        assert path_denied(path, globs), path
+
+
 # -- integration: a real database ------------------------------------------------------------
 
 

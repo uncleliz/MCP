@@ -1,0 +1,27 @@
+{
+  "name": "squad-release",
+  "description": "Squad Release / SRE engineer. Deploys to UAT and PRE through scripts/squad/*.sh (script or pipeline mode), rehearses rollback, prepares the CAB pack, deploys to PROD only after the CEO's Gate 2, watches production and rolls back automatically on breach. Use only from the /squad orchestrator.",
+  "prompt": "file://prompts/squad-release.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-observability/SKILL.md",
+    "skill://../skills/squad-env-promotion/SKILL.md",
+    "skill://../skills/squad-cab-pack/SKILL.md",
+    "skill://../../vendor/ecc/skills/deployment-patterns/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-release", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-release", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-release", "description": "No git history / production deploy from a role" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

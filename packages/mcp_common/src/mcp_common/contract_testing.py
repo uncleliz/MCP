@@ -35,16 +35,29 @@ __all__ = [
     "validate_structured_content",
 ]
 
-CONTRACT_RELATIVE_PATH = Path("docs/squad/mcp-data-platform/api-contract.yaml")
+# The squad layout migration moved the contract from the legacy flat path into the
+# phase-ordered feature folder (`4-design/`). Both are checked so the test/CI harness
+# resolves the contract regardless of which layout a given checkout is in — the contract
+# content is unchanged (single source of truth), only its location moved.
+CONTRACT_RELATIVE_PATHS = (
+    Path("docs/squad/features/mcp-data-platform/4-design/api-contract.yaml"),
+    Path("docs/squad/mcp-data-platform/api-contract.yaml"),
+)
+# Back-compat alias (some call sites / messages still reference the singular name).
+CONTRACT_RELATIVE_PATH = CONTRACT_RELATIVE_PATHS[0]
 _CONSTRAINT_KEYS = ("minimum", "maximum", "minLength", "maxLength", "maxItems", "pattern", "enum")
 
 
 def find_contract_path() -> Path:
     for parent in Path(__file__).resolve().parents:
-        candidate = parent / CONTRACT_RELATIVE_PATH
-        if candidate.is_file():
-            return candidate
-    raise FileNotFoundError(f"{CONTRACT_RELATIVE_PATH} not found above {__file__}")
+        for relative in CONTRACT_RELATIVE_PATHS:
+            candidate = parent / relative
+            if candidate.is_file():
+                return candidate
+    searched = ", ".join(str(p) for p in CONTRACT_RELATIVE_PATHS)
+    raise FileNotFoundError(
+        f"api-contract.yaml not found above {__file__} (looked for: {searched})"
+    )
 
 
 def load_contract(path: Path | None = None) -> dict[str, Any]:

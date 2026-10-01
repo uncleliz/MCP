@@ -1,0 +1,34 @@
+# Schema verification @ 2026-10-01T11:32:23Z
+## tables in schema kb
+                List of relations
+ Schema |        Name         | Type  |   Owner   
+--------+---------------------+-------+-----------
+ kb     | chunks              | table | mcp_admin
+ kb     | documents           | table | mcp_admin
+ kb     | ingest_failures     | table | mcp_admin
+ kb     | ingest_runs         | table | mcp_admin
+ kb     | ingest_source_state | table | mcp_admin
+ kb     | schema_migrations   | table | mcp_admin
+(6 rows)
+
+## applied migrations
+       version        |          applied_at           
+----------------------+-------------------------------
+ 0001_extensions      | 2026-10-01 04:08:59.73363+00
+ 0002_schema_kb       | 2026-10-01 04:08:59.752602+00
+ 0003_indexes         | 2026-10-01 04:08:59.762105+00
+ 0004_ingest_state    | 2026-10-01 04:08:59.76496+00
+ 0005_roles           | 2026-10-01 04:08:59.770592+00
+ 0006_review_followup | 2026-10-01 04:08:59.773615+00
+(6 rows)
+
+## roles
+    rolname    | rolcanlogin 
+---------------+-------------
+ mcp_admin     | t
+ mcp_query_ro  | t
+ mcp_ingest_rw | t
+(3 rows)
+
+## pgvector extension installed
+vector|0.8.6

@@ -24,7 +24,7 @@ tổng 95.9%).
 | **`mcp_ingest_rw` không xuất hiện trong env của bất kỳ MCP server nào**: không trong snippet `config-emit` của 9 server, không trong mã nguồn server nào, không trong ví dụ cấu hình Claude Desktop ở `docs/`; kiểm âm có test | `verify_tool_surface.py`, `test_signoff_surface.py` (3 test âm) |
 | `MCP_INGEST_ADMIN_DSN` chỉ được `db upgrade` đọc; mọi lệnh khác dùng `MCP_INGEST_PGVECTOR_DSN`; thiếu cả hai → `db upgrade` báo lỗi config rõ ràng; DSN không lọt vào thông báo lỗi kết nối | `test_cli_contract.py` (`test_no_other_command_reads_the_admin_dsn`, `test_the_admin_dsn_is_referenced_only_by_migration_dsn`) |
 | `mcp-pgvector` từ chối serve khi được dán DSN `mcp_ingest_rw` (lỗ hổng ADR-0003 A1) | `mcp_pgvector/tests/test_db_integration.py::test_TC_043_*` |
-| **Recall NFR-003 ≥ 0.95**: 50 truy vấn, top-10, đường tìm kiếm thật của `mcp-pgvector` so với brute force (`enable_indexscan=off`), HNSW được ép dùng (kiểm bằng `EXPLAIN`), corpus ~1320 chunk nạp **qua pipeline**. Kết quả: **mean 0.994, min 0.90** trên pgvector 0.6.0 (nhánh over-fetch `top_k×4`) | `packages/mcp_pgvector/tests/test_recall.py`, `scripts/recall_benchmark.py`, `eval/recall_queries.yaml` |
+| **ANN-index correctness (ADR-0011 A3 anti-false-negative gate, KHÔNG phải đo chất lượng truy hồi/NFR-003)**: 50 truy vấn, top-10, so khớp ID giữa đường tìm kiếm thật của `mcp-pgvector` (HNSW, ép dùng — kiểm bằng `EXPLAIN`) và brute force (`enable_indexscan=off`) trên **cùng corpus+query sinh bởi một seed sinh tổng hợp duy nhất** (`DeterministicFakeProvider`, hashed bag-of-words — mặc định của script). Kết quả: **mean 0.994, min 0.90** trên pgvector 0.6.0 (nhánh over-fetch `top_k×4`) — chứng minh HNSW không bỏ sót hàng mà brute force tìm thấy (đúng phạm vi ADR-0011 A3). **Không** chứng minh NFR-003 (truy hồi tìm đúng chunk cho câu hỏi thật): corpus và query dùng chung generator/ground-truth nên không có rủi ro ngữ nghĩa nào được đo; phép đo NFR-003 thật cần model embedding thật và đang bị chặn sau ADR-0010 (xem "Giới hạn" dưới và mục B) | `packages/mcp_pgvector/tests/test_recall.py`, `scripts/recall_benchmark.py`, `eval/recall_queries.yaml` |
 | `mcp_query_ro` không ghi được (INSERT/UPDATE/DELETE/TRUNCATE/DROP) | `test_recall.py::test_NFR_001_*`, `test_db_integration.py::test_TC_044_*` |
 | Pipeline FR-012: AC-001 (crawl→redact→chunk→embed→persist, tìm lại qua `kb_semantic_search` với **URL gốc**), AC-002 (nguồn chết không dừng nguồn khác, cursor không nhảy, doc lỗi kéo cursor lùi, lock theo nguồn), AC-003 (chạy 2 lần không nhân bản, đổi tên giữ hash vẫn cập nhật citation, đổi chunk config thì re-chunk) | `test_integration.py`, `test_checkpoint.py`, `test_persist_idempotent.py` |
 | R4: secret trong nguồn **không** vào `kb.chunks` (truy vấn thật); deny-glob chặn `.env`/`*.pem` và để lại hàng `ingest_failures{redact, blocked_by_policy}` | `test_stage_redact.py`, `test_connector_gitlab.py` |
@@ -38,9 +38,15 @@ tổng 95.9%).
 
 ### Giới hạn của bằng chứng tự động (nêu thẳng)
 
-* **Recall đo bằng provider giả** (`DeterministicFakeProvider`, hashed bag-of-words) trên corpus tổng
-  hợp: nó chứng minh index HNSW + đường truy vấn, **không** chứng minh chất lượng ngữ nghĩa. Lần đo
-  với model thật (spike S2 chưa chốt: `bge-m3` đang là tạm thời, ADR-0010 A1) **chưa làm** — xem B.
+* **`scripts/recall_benchmark.py` đo ANN-index correctness, không đo NFR-003.** Provider giả
+  (`DeterministicFakeProvider`, hashed bag-of-words) sinh **cả corpus và query từ cùng một seed/
+  generator** (ground truth = token `topicNwM` dùng chung), nên mean/min ở mục A chỉ chứng minh
+  HNSW trả đúng tập hàng mà brute-force cũng trả (anti-false-negative gate của ADR-0011 A3) — nó sẽ
+  ra ~1.0 dù embedding là noise thuần, vì không có leakage ngữ nghĩa nào bị kiểm. **NFR-003 (truy
+  hồi tìm đúng chunk cho câu hỏi thật) vẫn CHƯA được đo bằng bất kỳ con số nào ở mục A.** Phép đo đó
+  cần model embedding thật, và bị chặn sau khi ADR-0010 A1 được chốt (`bge-m3` hiện vẫn PROVISIONAL —
+  bake-off chưa chạy vì egress HuggingFace bị chặn trong container squad) — xem mục B ("Đo recall
+  NFR-003 với model thật").
 * pgvector cục bộ là **0.6.0** (< 0.8): nhánh `hnsw.iterative_scan` chưa được chạy với DB thật;
   nó nằm ở test `@live` của compose (`mcp_pgvector/tests/test_integration.py`).
 * Connector Confluence/GitLab/OpenSearch được test bằng fixture viết tay theo tài liệu API công

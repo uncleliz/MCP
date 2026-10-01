@@ -1,0 +1,16 @@
+== smoke: mcp-pgvector doctor (live Postgres+pgvector, read-only role) ==
+config: ok (embedding=http:fake/hashed-bow, dimensions=1024)
+credentials + read-only check: ok
+  role: mcp_query_ro
+  pgvector: 0.8.6
+== smoke: mcp-redis doctor (live Redis, mcp_ro ACL user) ==
+config: ok (host=localhost:6379, user=mcp_ro, deny_globs=5)
+credentials + read-only check: ok
+  acl user: mcp_ro
+== smoke: mcp-kafka doctor (live Kafka KRaft, auto-create off) ==
+%4|1790854486.655|CONFWARN|mcp-kafka-readonly#producer-1| [thrd:app]: Configuration property metadata.request.timeout.ms is deprecated: Not used.
+config: ok (bootstrap=localhost:9092, security=PLAINTEXT)
+credentials + read-only check: ok
+  ! no SASL principal configured; describe_acls check skipped
+SMOKE PASS (prod)
+SMOKE_EXIT=0

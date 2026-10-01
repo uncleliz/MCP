@@ -21,6 +21,8 @@ from typing import Any
 
 import httpx
 
+from mcp_common.redact import scrub
+
 __all__ = [
     "ErrorCode",
     "ToolError",
@@ -92,17 +94,44 @@ class NotPermittedError(ToolError):
         )
 
 
+def _scrub_recursive(value: Any) -> Any:
+    """Redact every string leaf of a JSON-like value (R-003).
+
+    `ToolError.message`/`.details` sometimes embed a raw SDK exception's `str(exc)`
+    (e.g. `_NON_HTTPX_SDK_RULES`'s `f"Postgres operational error: {exc}"`), which can
+    carry a DSN, hostname-with-credentials or other secret-shaped text straight from
+    the upstream SDK. `redact.py`'s documented guarantee is that *every* free-text
+    field reaching a tool result is scrubbed — this is the single choke point every
+    `ErrorEnvelope` is built through (`to_error_envelope`), so fixing it here closes
+    the bypass for all three call sites that build an envelope from a `ToolError`
+    (`mcp_common.tooling._error_result`, `mcp_common.runtime.with_tool_deadline`).
+    """
+    if isinstance(value, str):
+        scrubbed, _ = scrub(value)
+        return scrubbed
+    if isinstance(value, dict):
+        return {key: _scrub_recursive(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_scrub_recursive(item) for item in value]
+    return value
+
+
 def to_error_envelope(error: ToolError) -> dict[str, Any]:
-    """Render a `ToolError` as the `ErrorEnvelope` payload the contract specifies."""
+    """Render a `ToolError` as the `ErrorEnvelope` payload the contract specifies.
+
+    `message` and `details` are scrubbed (R-003) — this is the result boundary every
+    error reaches the caller through, so it must uphold the same "never leak a
+    secret-shaped string" guarantee as the success path's `safe_text`/`sanitize_json`.
+    """
     return {
         "status": "error",
         "error": {
             "code": error.code.value,
-            "message": error.message,
+            "message": scrub(error.message)[0],
             "source": error.source,
             "retryable": error.retryable,
             "retry_after_s": error.retry_after_s,
-            "details": error.details,
+            "details": _scrub_recursive(error.details),
             "request_id": error.request_id,
         },
     }

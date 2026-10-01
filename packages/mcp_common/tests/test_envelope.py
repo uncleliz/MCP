@@ -9,11 +9,14 @@ from typing import Any
 
 import pytest
 import yaml
+from mcp_common.contract_testing import find_contract_path
 from mcp_common.envelope import Citation, Meta, ResultStatus, SourceType, ToolResult
 from pydantic import ValidationError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CONTRACT_PATH = REPO_ROOT / "docs" / "squad" / "mcp-data-platform" / "api-contract.yaml"
+# Resolve via the central helper so the squad layout migration does not require patching
+# every test file (R-fix: CI path).
+CONTRACT_PATH = find_contract_path()
 
 
 @pytest.fixture(scope="module")

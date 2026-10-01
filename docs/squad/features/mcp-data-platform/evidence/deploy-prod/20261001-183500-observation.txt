@@ -1,0 +1,12 @@
+# Local observation window (CTO D-002, reduced for local go-live)
+# SLI source: container healthchecks + mcp-pgvector doctor liveness. No error/latency
+# baseline exists for a per-user stdio server with no network listener; liveness is the SLI.
+### sample @ 2026-10-01T11:35:00Z
+  containers healthy: /mcp-dev-postgres=healthy /mcp-dev-redis=healthy /mcp-dev-kafka=healthy /mcp-dev-localstack=healthy 
+  mcp-pgvector doctor: ok (exit 0)
+--- waiting 90s ---
+### sample @ 2026-10-01T11:36:31Z
+  containers healthy: /mcp-dev-postgres=healthy /mcp-dev-redis=healthy /mcp-dev-kafka=healthy /mcp-dev-localstack=healthy 
+  mcp-pgvector doctor: ok (exit 0)
+
+VERDICT: no errors, servers stayed live across the window.

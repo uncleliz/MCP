@@ -1,0 +1,24 @@
+{
+  "name": "squad-po",
+  "description": "Squad Product Owner. Mode \"frame\" turns the CEO's goal into a problem framing (product-requirement.md); mode \"brief\" packages research + options into the CEO-facing decision-brief.md; mode \"finalize\" narrows product-requirement.md to the option the CEO approved. Use only from the /squad orchestrator.",
+  "prompt": "file://prompts/squad-po.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-baselines/SKILL.md",
+    "skill://../../vendor/ecc/skills/product-lens/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-po", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-po", "description": "Role ownership + layout + append-only + no secrets" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

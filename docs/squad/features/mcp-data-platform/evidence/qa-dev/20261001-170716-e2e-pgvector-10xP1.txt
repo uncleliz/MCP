@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.6, pytest-9.1.1, pluggy-1.6.0 -- /Users/manh.le/Desktop/MCP/.venv/bin/python
+rootdir: /Users/manh.le/Desktop/MCP
+configfile: pyproject.toml
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.15.1, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 10 items
+
+e2e/test_pgvector_ingest_e2e.py::test_TC_045_ingest_then_semantic_search_roundtrip_with_citation PASSED [ 10%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_051_secret_never_stored_nor_returned PASSED [ 20%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_073_restricted_page_rejected_and_purged_on_relabel PASSED [ 30%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_049_rerun_unchanged_and_changed_does_not_duplicate PASSED [ 40%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_067_status_json_reports_staleness PASSED [ 50%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_074_prune_requires_explicit_retention_and_dry_run_is_default PASSED [ 60%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_068_list_sources_empty_db_then_populated PASSED [ 70%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_077_list_sources_hides_all_tombstoned_source PASSED [ 80%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_052_semantic_synthesis_cites_original_urls_and_queue PASSED [ 90%]
+e2e/test_pgvector_ingest_e2e.py::test_TC_053_off_topic_question_yields_explicit_empty PASSED [100%]
+
+============================= 10 passed in 29.10s ==============================

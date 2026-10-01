@@ -122,6 +122,25 @@ def test_full_query_text_is_never_emitted_at_info_level(
     assert "password=" not in captured.err
 
 
+def test_R_003_log_message_with_secret_shaped_string_is_scrubbed(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`redact.py` documents `scrub()` as applying "to every log record" — the
+    formatter is the one place every server's log handler goes through, so this is
+    the structural guarantee, independent of whether any current call site happens
+    to pass raw secret text as the log message."""
+    logger = setup_logging("test-server", level="ERROR")
+
+    logger.error(
+        "upstream error: connection string postgresql://ingest:glpat-abcdefghijklmnopqrst@db"
+    )
+
+    captured = capsys.readouterr()
+    record = json.loads(captured.err.strip())
+    assert "glpat-abcdefghijklmnopqrst" not in record["message"]
+    assert "«redacted:" in record["message"]
+
+
 def test_get_logger_binds_server_without_setup(capsys: pytest.CaptureFixture[str]) -> None:
     setup_logging("bound-server")
     logger = get_logger("bound-server")

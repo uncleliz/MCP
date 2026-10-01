@@ -168,7 +168,10 @@ false negative được trình bày như sự thật, tức hỏng đúng FR-015
 - Nếu không-filter có match mà filter làm rỗng ⇒ vẫn `empty` nhưng warning phải nói rõ **bộ
   lọc** loại kết quả.
 - Recall kỳ vọng ghi vào đây để QA có mốc test: ≥ 0.95 so với brute-force `SET enable_indexscan=off`
-  trên bộ 50 truy vấn mẫu.
+  trên bộ 50 truy vấn mẫu. **Đây là gate *ANN-vs-brute-force correctness* (chứng minh HNSW không bỏ
+  sót hàng mà brute-force tìm thấy — chống false negative), KHÔNG phải phép đo chất lượng ngữ nghĩa
+  NFR-003.** NFR-003 (truy hồi tìm đúng chunk cho câu hỏi thật) chỉ đo được bằng review tay trên bộ
+  mẫu với model embedding thật (ADR-0010) và vẫn UNVERIFIED cho tới khi chốt model đó.
 
 ### A4 — Bảng mới `kb.ingest_failures` (chống mất dữ liệu âm thầm)
 ```sql

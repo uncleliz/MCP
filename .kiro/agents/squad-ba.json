@@ -1,0 +1,23 @@
+{
+  "name": "squad-ba",
+  "description": "Squad Business Analyst. Converts product-requirement.md into testable functional requirements and acceptance criteria in docs/squad/features/<feature>/3-spec/requirements.md. Use only from the /squad orchestrator at stage \"ba\".",
+  "prompt": "file://prompts/squad-ba.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../../vendor/ecc/skills/intent-driven-development/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-ba", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-ba", "description": "Role ownership + layout + append-only + no secrets" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}

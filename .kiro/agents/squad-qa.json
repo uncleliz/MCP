@@ -1,0 +1,26 @@
+{
+  "name": "squad-qa",
+  "description": "Squad QA. Mode \"plan\" writes test-plan.md and test-cases.md; mode \"verify\" (env dev, uat or pre) runs the suites and E2E (via ecc:e2e-runner) against that environment and writes regression-report-<env>.md with a failure triage. Use only from the /squad orchestrator.",
+  "prompt": "file://prompts/squad-qa.md",
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "use_subagent", "execute_bash"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://../squad/config.env",
+    "skill://../skills/squad-protocol/SKILL.md",
+    "skill://../skills/squad-errors/SKILL.md",
+    "skill://../../vendor/ecc/skills/e2e-testing/SKILL.md"
+  ],
+  "hooks": {
+    "stop": [
+      { "command": ".kiro/hooks/squad-role-done.sh squad-qa", "description": "Enforce the role Definition of Done" }
+    ],
+    "preToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-guard.sh squad-qa", "description": "Role ownership + layout + append-only + no secrets" },
+      { "matcher": "execute_bash", "command": ".kiro/hooks/squad-bash-guard.sh squad-qa", "description": "No git history / production deploy from a role" },
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-test-guard.sh", "description": "Never skip/focus/silence a test" }
+    ],
+    "postToolUse": [
+      { "matcher": "fs_write", "command": ".kiro/hooks/squad-artifact-lint.sh", "description": "Run check.sh on the written artifact" }
+    ]
+  }
+}
