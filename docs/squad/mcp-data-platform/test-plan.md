@@ -3,7 +3,7 @@
 > Grounded in `requirements.md` (FR-001…FR-015, NFR-001…NFR-005, BR-001…BR-005, **37** AC id —
 > the file itself lists 37; the BA's own HANDOFF undercounted this as 36, see
 > `implementation-plan.md` "Ghi chú đếm" for the reconciliation. This plan uses 37 as truth),
-> `architecture.md` (16 ADR, 29 amendments, spikes S1–S5), `api-contract.yaml` (49 MCP tools +
+> `architecture.md` (16 ADR, 29 amendments, spikes S1–S5), `api-contract.yaml` (49 MCP tools — 48 registered by default, 49 with `MCP_OPENSEARCH_ALLOW_DSL=true` — +
 > 6 `x-interface: cli` operations, all `x-readonly: true` except the CLI mutations on `kb`
 > itself), and `implementation-plan.md` (86 tasks T-001…T-086).
 
@@ -35,8 +35,10 @@ citation, metadata preservation) rather than as a separate axis.
   they do not need to change once S2/S4 close — see TC-028 and TC-071.
 - Whether RBAC/`visibility` filtering is a Phase 3 must-have (ADR-0016 Part 2, Open question 3,
   the "T-067 equivalent" decision). Both branches of that decision have a placeholder TC
-  (TC-072 conditional-on-"yes", TC-073 as the currently-assumed-default-if-"no"); neither is
-  dropped, but TC-072 will not actually run in `qa-verify` until Gate B answers this.
+  (TC-072 conditional-on-"yes", TC-073 as the default-if-"no"). **Resolved:** ADR-0016 A1
+  chose a team-only corpus and T-067 is closed, so TC-072 is closed as not applicable (not run);
+  TC-073 is the active case and also covers purge-on-relabel (team→restricted removes chunks and
+  tombstones the document).
 - Any frontend/browser/UI testing (none exists), load/performance testing beyond the
   timeout-budget correctness check, and live integration against the 5 real remote systems
   (Confluence, GitLab, OpenSearch, Kibana, CloudWatch) if spike S1 (`docs/spikes/S1-reachability.md`)
@@ -97,7 +99,7 @@ infra available.
 - `uncovered_ac` remains `[]` (37/37 AC mapped to ≥1 passing or explicitly-triaged TC).
 - Any `@pytest.mark.live` test skipped due to unreachable infra (R1) is explicitly listed in the
   regression report with a reason — never silently dropped from the pass/fail count.
-- TCs marked `# THRESHOLD TBD` / conditional-on-Gate-B (TC-062, TC-065, TC-067, TC-071, TC-072,
+- TCs marked `# THRESHOLD TBD` / conditional-on-Gate-B (TC-062, TC-065, TC-067, TC-071,
   TC-074) report their measured value/behavior even though their final numeric pass bound is
   pending PO/Gate B; they do not block PASS on the *unset* number, only on the interim assertion
   already committed in ADR-0006 A2 / the contract's explicit "no implicit default" rule.
@@ -119,4 +121,4 @@ mitigations", restated from a QA verification angle:
 | R18 — silent data loss in ingest checkpoint/reconcile | `status=success` could mask a skipped document; a partial crawl could mass-tombstone the corpus | TC-046 (checkpoint doesn't advance past a failed doc), TC-047 (reconcile safety valve blocks mass-tombstone) |
 | R19 — `mcp-pgvector` (read-only) needs the same `EmbeddingProvider` port that lives in `mcp_ingest` (which owns the write-capable `mcp_ingest_rw` role) | A packaging mistake here could smuggle write-path code into a read-only server | Covered by BE's import-linter test (T-058); QA does not duplicate it but TC-043/044 independently prove the pgvector *role* itself can't write regardless of what it imports |
 | R20 — NFR-002/003/004 thresholds and `prune` retention default are all still TBD | Verification tests would otherwise have empty/unwritable assertions | Each such TC carries a `# THRESHOLD TBD` marker and an interim assertion (ADR-0006 A2 numbers, or "must be passed explicitly, no default") so the test is real today and only its final numeric bound changes later |
-| Gate B decision #5 (ADR-0016 RBAC) still open | A whole task family (T-067) may or may not exist depending on the answer | TC-072 (conditional) and TC-073 (current default) both drafted now; `qa-verify` runs whichever branch Gate B has actually selected by then |
+| Gate B decision #5 (ADR-0016 RBAC) — **resolved: team-only**, T-067 closed | Residual: Confluence restriction changed without content change stays searchable until next full reconcile (ADR-0016 A3) | TC-072 closed (N/A); TC-073 asserts reject + purge-on-relabel |

@@ -1,6 +1,6 @@
 # MCP Data Platform — Test Cases
 
-> 74 test cases (TC-001…TC-074) covering all 37 AC id in `requirements.md` (FR-001…FR-015).
+> 77 test cases (TC-001…TC-077; TC-072 closed as not applicable) covering all 37 AC id in `requirements.md` (FR-001…FR-015).
 > Every TC's "Covers AC" cites the exact `FR-xxx/AC-xxx` id(s) it proves; several ACs have more
 > than one TC (a primary positive/negative case plus a guard/regression case called out
 > explicitly in `implementation-plan.md`/`architecture.md`, e.g. the Kafka auto-create guard,
@@ -44,14 +44,14 @@
 |----|-----------|-------|----------|---------------|-------|----------|
 | TC-016 | FR-004/AC-001 | Integration | P1 | Mocked `opensearch-py` client with matching log entries in the given index + time range | 1. Call `opensearch_search_logs{index_pattern, query, time_from, time_to}`. | `status=ok`; each item cites index name + document `_id` + `@timestamp` |
 | TC-017 | FR-004/AC-002 | Integration | P1 | Case A: no matches. Case B: `time_from > time_to` | 1. Call `opensearch_search_logs` for each case. | A → `status=empty`; B → `error.code=invalid_input`; neither fabricates log entries |
-| TC-018 | FR-004/AC-002 | Unit | P1 | Request bodies containing `script`, `scripted_metric`, `runtime_mappings`, `scroll`, `point_in_time` | 1. Call `opensearch_search_dsl` with each forbidden construct. | `not_permitted` for every construct (ADR-0008 A2 — these create cluster-side state) |
+| TC-018 | FR-004/AC-002 | Unit | P1 | `MCP_OPENSEARCH_ALLOW_DSL=true` (tool is not registered otherwise — ADR-0008 A7). Request bodies containing `script`, `scripted_metric`, `runtime_mappings`, `scroll`, `point_in_time` | 1. Call `opensearch_search_dsl` with each forbidden construct. | `not_permitted` for every construct (ADR-0008 A2 — these create cluster-side state) |
 
 ## Phase 2 — Kibana (FR-005)
 
 | TC | Covers AC | Level | Priority | Preconditions | Steps | Expected |
 |----|-----------|-------|----------|---------------|-------|----------|
-| TC-019 | FR-005/AC-001 | Integration | P1 | `respx` fixture: a saved dashboard matching the requested service/topic | 1. Call `kibana_find_saved_objects`. 2. Call `kibana_build_dashboard_link{id, time_from, time_to}`. | `status=ok`; the built link opens the correct dashboard id with the exact `_g=(time:(from,to))` requested; `build_dashboard_link` makes **no** network call |
-| TC-020 | FR-005/AC-002 | Integration | P1 | No dashboard/visualization matches the requested topic | 1. Call `kibana_find_saved_objects`. | `status=not_found` |
+| TC-019 | FR-005/AC-001 | Integration | P1 | `respx` fixture: a saved dashboard matching the requested service/topic | 1. Call `kibana_find_saved_objects`. 2. Call `kibana_build_dashboard_link{id, time_from, time_to}`. | `status=ok`; the built link opens the correct dashboard id with the exact `_g=(time:(from,to))` requested; `build_dashboard_link` makes **exactly one** verifying `GET /api/saved_objects/dashboard/{id}` (anti-fabricated-id guard, FR-015; also yields `title`) — `respx` asserts call count == 1; the URL itself is built by a pure function |
+| TC-020 | FR-005/AC-002 | Integration | P1 | No dashboard/visualization matches the requested topic; an unknown saved-object id (`respx` 404) | 1. Call `kibana_find_saved_objects` with the unmatched topic. 2. Call `kibana_get_saved_object{id: unknown}`. 3. Call `kibana_build_dashboard_link{id: unknown, ...}`. | Step 1 → `status=empty` (search with no match = `empty` per `ResultStatus` convention; this is the explicit "not found" outcome FR-005/AC-002 requires — not fabricated). Steps 2 and 3 → `status=not_found` (specific identifier); no link is returned for an unknown id |
 
 ## Phase 2 — CloudWatch (FR-006)
 
@@ -130,7 +130,7 @@
 
 | TC | Covers AC | Level | Priority | Preconditions | Steps | Expected |
 |----|-----------|-------|----------|---------------|-------|----------|
-| TC-054 | FR-014/AC-001 | Unit | P1 | `tools.snapshot.json` for each of the 9 packages | 1. Run `assert_readonly_tool_surface` for each snapshot against `api-contract.yaml`. | Zero tools with a write/update/delete side effect across the full 49-tool surface; every operation carries `x-readonly: true`/`x-side-effects: none` |
+| TC-054 | FR-014/AC-001 | Unit | P1 | `tools.snapshot.json` for each of the 9 packages | 1. Run `assert_readonly_tool_surface` for each snapshot against `api-contract.yaml`. | Zero tools with a write/update/delete side effect. Default registered surface is **48 tools**; **49** with `MCP_OPENSEARCH_ALLOW_DSL=true` (assert both counts; `opensearch_search_dsl` absent by default — ADR-0008 A7); every operation carries `x-readonly: true`/`x-side-effects: none` |
 | TC-055 | FR-014/AC-001 | Unit | P1 | Transport-assertion fixture active for every unit test (`respx`) | 1. Run the full unit suite for all 9 packages. | Every outbound request is `GET`/`HEAD` except explicit allowlisted `(host, method, path)` tuples; any `POST`/`PUT`/`DELETE` fails the test immediately |
 | TC-056 | FR-014/AC-002 | E2E | P1 | Each of the 9 servers served over real stdio | 1. Send a JSON-RPC `tools/call` for a fabricated/nonexistent "write" tool name (e.g. `confluence_delete_page`) to each server in turn. | MCP SDK returns the JSON-RPC "unknown tool" **protocol** error (not an `ErrorEnvelope` — per `api-contract.yaml` `info.description`, this AC lives at the protocol layer, not the contract-schema layer); no source data changes for any of the 9 |
 | TC-057 | FR-014/AC-002 | Unit | P2 | A request targeting an operation that **does** exist but is outside the allowlist (e.g. an OpenSearch body containing `script`) | 1. Call the tool with the forbidden construct. | `error.code=not_permitted` — distinct mechanism from TC-056's protocol-layer case; the contract explicitly calls out that these are two different things and a tester should not conflate them |
@@ -163,9 +163,12 @@
 | TC | Covers AC | Level | Priority | Preconditions | Steps | Expected |
 |----|-----------|-------|----------|---------------|-------|----------|
 | TC-071 | FR-012/AC-001, FR-012/AC-003 | Integration | P2 | `# MODEL TBD (spike S2 / ADR-0010 — bge-m3 vs multilingual-e5-large; both candidates are 1024d so no schema change is needed either way)` | 1. Run `scripts/bakeoff_embedding.py` comparing both candidate models on the NFR-003 question set. | Recall@k / latency / RAM / load-time comparison table produced; whichever model S2 ultimately selects, TC-039/TC-040/TC-066 must be re-run against the final choice — no test rewrite needed, only re-execution |
-| TC-072 | FR-012/AC-001 (ADR-0016 Part 2, Open question 3) | Integration | P2 | **CONDITIONAL — only runs if Gate B/PO selects "corpus may contain `restricted` visibility"** (the "T-067 equivalent" branch) | 1. Query `kb_semantic_search` as two identities with different permission groups over a corpus containing both `team` and `restricted` documents. | Restricted documents are filtered out for the identity without access, present for the identity with access. `# RBAC SCOPE TBD (Open question 3 — not yet answered; this TC is a placeholder and does not execute until Gate B decides)` |
-| TC-073 | FR-012/AC-001 | Integration | P1 | The **currently-assumed default** branch if Gate B answers "no restricted content" — active unless/until Open question 3 says otherwise | 1. Run `mcp-ingest run` against a fixture containing a document whose inferred `visibility != 'team'`. | Document is rejected at the redact/tagging stage and recorded in `kb.ingest_failures{code: blocked_by_policy}`; it never reaches `kb.chunks` |
+| TC-072 | FR-012/AC-001 (ADR-0016 Part 2, Open question 3) | — | — | **CLOSED — NOT APPLICABLE.** Gate B/ADR-0016 A1 chose a team-only corpus; T-067 (RBAC filtering) is closed. Not executed; kept as a tombstone row so ids stay stable. Replaced by TC-073 (reject/purge on non-team visibility) | — | — |
+| TC-073 | FR-012/AC-001 | Integration | P1 | Team-only corpus is the **decided** policy (ADR-0016 A1–A3, default-deny S5); compose Postgres | 1. Run `mcp-ingest run` against a fixture containing a document whose inferred `visibility != 'team'`. 2. Ingest a document as `team` (chunks exist in `kb.chunks`), then change the source so its label becomes `restricted` (or its space/project leaves the allowlist) and re-run ingest. 3. Query `kb_semantic_search` for its content. | Step 1: document rejected and recorded in `kb.ingest_failures{code: blocked_by_policy}`; never reaches `kb.chunks`. Step 2 (purge-on-relabel): its chunks are removed and the document is tombstoned in the same transaction (ADR-0016 A1). Step 3: no chunk of it is returned |
 | TC-074 | FR-012/AC-003 | Integration | P2 | `# RETENTION DEFAULT TBD (mcp-ingest prune has no implicit default; api-contract.yaml requires at least one of tombstoned/older_than_days to be passed explicitly)` | 1. Run `mcp-ingest prune` with no flags. 2. Run `mcp-ingest prune --tombstoned --older-than 30d --dry-run`. | Step 1 is rejected by the request schema (`anyOf: [tombstoned, older_than_days]` required); step 2 reports `documents_deleted`/`chunks_deleted` without modifying data (`dry_run` default `true`) |
+| TC-075 | FR-008/AC-001 | Integration | P1 | `redis:7` (docker-compose) with `mcp_ro` ACL from `infra/redis/users.acl` including `+select` (ADR-0008 A5); key pre-seeded in `db=1` | 1. Call `redis_get_key{key, db: 1}`. 2. Attempt `SELECT` as a tool-level command. | Step 1: `status=ok`, value returned with key citation (no `forbidden`/ACL error). Step 2: `not_permitted` — `SELECT` is not in the tool command allowlist; startup ACL check (write-category) still passes with `+select` granted |
+| TC-076 | FR-004/AC-001, FR-004/AC-002 | Unit | P1 | `MCP_OPENSEARCH_ALLOW_DSL=true`; mocked `opensearch-py` | 1. Call `opensearch_search_dsl{limit: 10, body.size: 50}`. 2. Call with `from: 950, size: 100` (from+size = 1050 > 1000). 3. Call with `from: 901`. 4. Call with `from: 500, size: 10, limit: 10`. | Step 1: `size` clamped to `limit` (10) with a `meta.warnings` entry; `status=ok`. Step 2: rejected with the invalid-argument error (contract/ADR-0008 A7 call it `invalid_argument`; hint suggests `search_after`) and no upstream call made. Step 3: rejected (`from` ∈ 0..900). Step 4: accepted (`from` not forced ≤ `limit`). **Note:** `ErrorCode` enum in `api-contract.yaml` lists `invalid_input`, not `invalid_argument` — if the runtime code differs from the enum, triage as `contract` |
+| TC-077 | FR-011/AC-001 (NFR-004) | Integration | P2 | Compose Postgres: source A has live documents; source B has only tombstoned documents (or none) | 1. Call `kb_list_sources`. | Source A appears in `items` with `uri` = origin of a live document's `source_uri` (never `null`, invariant 6); source B is **absent from `items`** and named in `meta.warnings` |
 
 ## AC → TC traceability summary
 
@@ -176,22 +179,22 @@ All 37 AC id from `requirements.md` map to at least one TC above:
 | FR-001 | AC-001, AC-002, AC-003 | TC-001, TC-002, TC-003, TC-004, TC-005, TC-006 |
 | FR-002 | AC-001, AC-002, AC-003 | TC-007, TC-008, TC-009, TC-010, TC-011, TC-012, TC-013 |
 | FR-003 | AC-001, AC-002 | TC-014, TC-015 |
-| FR-004 | AC-001, AC-002 | TC-016, TC-017, TC-018 |
+| FR-004 | AC-001, AC-002 | TC-016, TC-017, TC-018, TC-076 |
 | FR-005 | AC-001, AC-002 | TC-019, TC-020 |
 | FR-006 | AC-001, AC-002 | TC-021, TC-022, TC-023 |
 | FR-007 | AC-001, AC-002, AC-003 | TC-024, TC-025, TC-026, TC-027, TC-028 |
-| FR-008 | AC-001, AC-002, AC-003 | TC-029, TC-030, TC-031, TC-032 |
+| FR-008 | AC-001, AC-002, AC-003 | TC-029, TC-030, TC-031, TC-032, TC-075 |
 | FR-009 | AC-001, AC-002 | TC-033, TC-034 |
 | FR-010 | AC-001, AC-002, AC-003 | TC-035, TC-036, TC-037, TC-038 |
-| FR-011 | AC-001, AC-002, AC-003 | TC-039, TC-040, TC-041, TC-042, TC-043, TC-044, TC-066, TC-071 |
-| FR-012 | AC-001, AC-002, AC-003 | TC-045, TC-046, TC-047, TC-048, TC-049, TC-050, TC-051, TC-071, TC-072, TC-073, TC-074 |
+| FR-011 | AC-001, AC-002, AC-003 | TC-039, TC-040, TC-041, TC-042, TC-043, TC-044, TC-066, TC-071, TC-077 |
+| FR-012 | AC-001, AC-002, AC-003 | TC-045, TC-046, TC-047, TC-048, TC-049, TC-050, TC-051, TC-071, TC-073, TC-074 |
 | FR-013 | AC-001, AC-002 | TC-052, TC-053 |
 | FR-014 | AC-001, AC-002 | TC-054, TC-055, TC-056, TC-057, TC-061 |
 | FR-015 | AC-001, AC-002 | TC-058, TC-059, TC-060 |
 | NFR-001 | — | TC-061 |
 | NFR-002 | — | TC-062, TC-063, TC-064 |
 | NFR-003 | — | TC-065, TC-066 |
-| NFR-004 | — | TC-067, TC-068 |
+| NFR-004 | — | TC-067, TC-068, TC-077 |
 | NFR-005 | — | TC-069, TC-070 |
 
 `uncovered_ac: []` — 37/37 AC id covered.
