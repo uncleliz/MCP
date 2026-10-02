@@ -25,6 +25,7 @@ from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, NotPermittedError, ToolError
 from mcp_common.http import build_client, request_with_retry
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 
 from mcp_confluence.settings import Settings
 
@@ -67,12 +68,20 @@ class ConfluenceClient:
         *,
         common: CommonSettings | None = None,
         http: httpx.AsyncClient | None = None,
+        enforce_egress: bool = False,
     ) -> None:
         self._settings = settings
         self._common = common or CommonSettings()
         self._host = httpx.URL(settings.base_url).host
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured credential for
+        # value-based scrubbing at the single client-construction seam, so an opaque token
+        # that the shape/label/entropy passes cannot recognise is still redacted from any
+        # outbound error/result/log before any request can fail. Covers both the live MCP
+        # server path and the mcp_ingest connector path (both build this client). Additive.
+        register_secret(settings.api_token.get_secret_value())
         self.http = http or build_client(
             settings=self._common,
+            enforce_egress=enforce_egress,
             auth=httpx.BasicAuth(settings.email, settings.api_token.get_secret_value()),
             headers={"Accept": "application/json"},
         )

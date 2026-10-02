@@ -125,6 +125,12 @@ class CommonSettings(BaseSettings):
     # when true; mcp_common.runtime owns emitting that warning.
     allow_unverified_credentials: bool = False
 
+    # Egress allow-list (CHG-003, ADR-0023 §6a) — CSV of host patterns the ingest-pull /
+    # model-download path may reach (e.g. `*.atlassian.net,huggingface.co`). **Empty by
+    # default = deny all**: a fresh install makes no outbound call until the operator names
+    # the hosts. Enforced at the one `mcp_common.egress.check_egress` choke point (L-001).
+    egress_allowlist: str = ""
+
 
 class SourceSettingsBase(BaseSettings):
     """Base class for every per-source `Settings` (Phase 1+).

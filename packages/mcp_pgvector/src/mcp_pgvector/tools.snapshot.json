@@ -58,7 +58,8 @@
               "redis",
               "sqs",
               "sns",
-              "pgvector"
+              "pgvector",
+              "jira"
             ],
             "type": "string"
           },
@@ -122,7 +123,8 @@
               "redis",
               "sqs",
               "sns",
-              "pgvector"
+              "pgvector",
+              "jira"
             ],
             "type": "string"
           },

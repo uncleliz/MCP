@@ -1,0 +1,20 @@
+=== scope (non-secret) ===
+base_url=https://tnexwm.atlassian.net/wiki  flavor=cloud  spaces=EA
+egress_allowlist=*.atlassian.net  live_egress=true  allow_unverified=true
+token_len=192 (never printed)
+=== DB counts BEFORE dry-run ===
+ documents |     2
+ chunks    |     2
+
+--- stderr tail ---
+error: cannot connect to the database (OperationalError); check MCP_INGEST_PGVECTOR_DSN
+
+$ mcp-ingest run --source confluence --limit 20 --json --dry-run  (space=EA, real tenant, loopback embed)
+
+exit=2
+=== DB counts AFTER dry-run (must be unchanged) ===
+ documents |     2
+ chunks    |     2
+
+=== token-leak check ===
+OK: token not present in evidence file

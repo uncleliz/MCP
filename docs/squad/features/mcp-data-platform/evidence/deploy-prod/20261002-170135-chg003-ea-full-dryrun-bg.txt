@@ -1,0 +1,39 @@
+--- stderr tail ---
+{"ts": "2026-10-02T10:40:02.296737+00:00", "level": "INFO", "message": "source confluence: partial", "server": "ingest", "tool": null, "request_id": null, "duration_ms": 2191148, "status": "partial", "error_code": "upstream_timeout", "upstream_status": null, "upstream_host": null, "items_returned": 25, "truncated": null, "redactions": null}
+
+$ mcp-ingest run --source confluence --mode full --json --dry-run  (space=EA FULL, real tenant, REAL bge-m3 offline)
+{
+  "mode": "full",
+  "started_at": "2026-10-02T10:01:36.031276Z",
+  "finished_at": "2026-10-02T10:40:02.296078Z",
+  "status": "partial",
+  "exit_code": 1,
+  "embedding_model": "BAAI/bge-m3",
+  "dry_run": true,
+  "sources": [
+    {
+      "source_type": "confluence",
+      "run_id": null,
+      "status": "partial",
+      "documents_seen": 25,
+      "documents_upserted": 25,
+      "documents_skipped": 0,
+      "documents_failed": 0,
+      "documents_tombstoned": null,
+      "chunks_written": 45,
+      "duration_s": 2191.148,
+      "cursor_advanced": false,
+      "errors": [
+        {
+          "stage": "crawl",
+          "source_id": null,
+          "code": "upstream_timeout",
+          "message": "Timeout khi gọi upstream.",
+          "retryable": true
+        }
+      ]
+    }
+  ]
+}
+exit=1
+dryrun_exit=1

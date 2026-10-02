@@ -48,6 +48,7 @@ from confluent_kafka.admin import (
 )
 from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, ToolError, map_exception_to_tool_error
+from mcp_common.redact import register_secret
 from mcp_common.runtime import BoundedExecutor
 
 from mcp_kafka.ports import (
@@ -206,6 +207,12 @@ class ConfluentKafkaReader:
         self._admin_factory = admin_factory or AdminClient
         self._consumer_factory = consumer_factory or Consumer
         self._admin_client: Any | None = None
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured SASL password for
+        # value-based scrubbing at the single reader-construction seam, so an opaque
+        # credential is redacted from any outbound error/result/log. Additive; no-op when
+        # SASL is not configured.
+        if settings.sasl_password is not None:
+            register_secret(settings.sasl_password.get_secret_value())
 
     def _admin(self) -> Any:
         if self._admin_client is None:

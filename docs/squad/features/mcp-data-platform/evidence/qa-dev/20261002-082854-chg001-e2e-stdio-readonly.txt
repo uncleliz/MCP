@@ -1,0 +1,25 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.6, pytest-9.1.1, pluggy-1.6.0 -- /Users/manh.le/Desktop/MCP/.venv/bin/python
+rootdir: /Users/manh.le/Desktop/MCP
+configfile: pyproject.toml
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.15.1, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 15 items
+
+e2e/test_stdio_readonly_e2e.py::test_TC_005_confluence_unknown_write_tool_refused PASSED [  6%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[cloudwatch] PASSED [ 13%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[confluence] PASSED [ 20%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[gitlab] PASSED [ 26%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[kafka] PASSED [ 33%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[kibana] PASSED [ 40%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[opensearch] PASSED [ 46%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[pgvector] PASSED [ 53%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[redis] PASSED [ 60%]
+e2e/test_stdio_readonly_e2e.py::test_TC_056_unknown_write_tool_refused_on_every_server[sqs_sns] PASSED [ 66%]
+e2e/test_stdio_readonly_e2e.py::test_TC_054_live_tool_surface_is_48_and_readonly PASSED [ 73%]
+e2e/test_stdio_readonly_e2e.py::test_TC_054_opensearch_dsl_toggle_adds_exactly_one_tool PASSED [ 80%]
+e2e/test_stdio_readonly_e2e.py::test_TC_069_stdout_carries_only_jsonrpc_frames[confluence] PASSED [ 86%]
+e2e/test_stdio_readonly_e2e.py::test_TC_069_stdout_carries_only_jsonrpc_frames[kibana] PASSED [ 93%]
+e2e/test_stdio_readonly_e2e.py::test_TC_069_stdout_carries_only_jsonrpc_frames[sqs_sns] PASSED [100%]
+
+============================= 15 passed in 42.65s ==============================

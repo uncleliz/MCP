@@ -1,0 +1,44 @@
+check.sh testplan E2E-rule flakiness proof — 2026-10-02T03:36:39Z
+
+A) DETERMINISTIC: every Must FR has an E2E TC covering one of its ACs
+OK   FR-001 (E2E via AC-003)
+OK   FR-002 (E2E via AC-003)
+OK   FR-003 (E2E via AC-002)
+OK   FR-004 (E2E via AC-002)
+OK   FR-005 (E2E via AC-002)
+OK   FR-006 (E2E via AC-002)
+OK   FR-007 (E2E via AC-003)
+OK   FR-008 (E2E via AC-003)
+OK   FR-009 (E2E via AC-002)
+OK   FR-010 (E2E via AC-003)
+OK   FR-011 (E2E via AC-003)
+OK   FR-012 (E2E via AC-003)
+OK   FR-013 (E2E via AC-002)
+OK   FR-014 (E2E via AC-002)
+OK   FR-015 (E2E via AC-002)
+OK   FR-016 (E2E via AC-004)
+OK   FR-017 (E2E via AC-004)
+OK   FR-018 (E2E via AC-003)
+OK   FR-019 (E2E via AC-003)
+OK   FR-020 (E2E via AC-003)
+OK   FR-021 (E2E via AC-004)
+OK   FR-022 (E2E via AC-003)
+OK   FR-023 (E2E via AC-004)
+OK   FR-024 (E2E via AC-003)
+OK   FR-025 (E2E via AC-003)
+OK   FR-026 (E2E via AC-004)
+
+B) SCRIPT FLAKY: 8 identical runs of scripts/squad/check.sh testplan
+run 1: FAIL (8 failed, 0 warnings)
+run 2: FAIL (6 failed, 0 warnings)
+run 3: FAIL (8 failed, 0 warnings)
+run 4: FAIL (6 failed, 0 warnings)
+run 5: FAIL (5 failed, 0 warnings)
+run 6: FAIL (4 failed, 0 warnings)
+run 7: FAIL (7 failed, 0 warnings)
+run 8: FAIL (4 failed, 0 warnings)
+
+Root cause: grep -q | pipefail SIGPIPE race in the install-managed check.sh E2E loop
+(set -uo pipefail; 'grep -w $ac | grep -q E2E' closes the pipe early -> upstream grep SIGPIPE -> intermittent misfire).
+AC ids are not globally unique (every FR reuses AC-001/AC-002), amplifying the fuzzy -w match.
+check.sh is NOT qa-owned and is overwrite-managed by opc-init; qa may not edit it (squad-protocol §4).

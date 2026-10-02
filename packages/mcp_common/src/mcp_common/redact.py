@@ -14,8 +14,9 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
+from urllib.parse import urlsplit
 
-__all__ = ["scrub"]
+__all__ = ["scrub", "register_secret", "register_dsn_secret", "clear_registered_secrets"]
 
 _REDACTED = "«redacted:{kind}»"
 
@@ -68,6 +69,62 @@ _LONG_TOKEN_PATTERN = re.compile(r"\b[A-Za-z0-9+/_=-]{32,}\b")
 
 _ALREADY_REDACTED_MARK = "«redacted:"
 
+# Shortest configured secret value that is worth value-based redaction. Anything
+# below this is either not a real credential or so short that redacting it would
+# scrub ordinary words out of logs/results — the shape/label/entropy passes still
+# cover genuinely sensitive short tokens that carry a recognisable prefix.
+_MIN_REGISTERED_SECRET_LEN = 8
+
+# T-121 (CHG-003 / FR-025, ADR-0023 §6c): the set of *configured* secret values
+# (e.g. the read-only Atlassian API token) that must be scrubbed wherever they
+# appear in an outbound string — the error/result boundary AND the stderr log.
+# Value-based redaction is the primary defence for an **opaque** token that the
+# shape/label/entropy heuristics below cannot recognise (a Confluence Cloud API
+# token has no guaranteed `ATATT3` prefix and may not look high-entropy): if the
+# exact configured secret appears anywhere outbound, it is redacted. Registering a
+# secret here is additive — the existing fixed-shape/label/JSON/entropy passes are
+# untouched and still run. The registry holds only the live process's own
+# credentials; it is never persisted and carries no plaintext to disk.
+_REGISTERED_SECRETS: set[str] = set()
+
+
+def register_secret(secret: str | None) -> None:
+    """Register a configured secret value so `scrub()` redacts it wherever it appears.
+
+    Called once at server/CLI startup after settings load (e.g. with the resolved
+    Atlassian API token). Short/empty values are ignored so a blank or placeholder
+    token never turns `scrub()` into a no-op that redacts ordinary text. Idempotent.
+    """
+    if not secret:
+        return
+    value = secret.strip()
+    if len(value) < _MIN_REGISTERED_SECRET_LEN:
+        return
+    _REGISTERED_SECRETS.add(value)
+
+
+def register_dsn_secret(dsn: str | None) -> None:
+    """Register the credential carried by a Postgres/Redis DSN for value-based scrubbing.
+
+    A DSN such as ``postgresql://user:p4ssw0rd@host/db`` carries its password inline. We
+    register (a) the password component on its own — the part most likely to be interpolated
+    into a psycopg/redis error — and (b) the full DSN string, so neither can leak verbatim on
+    an error/log path. Called once at the single client-construction seam of each DSN-backed
+    source (pgvector, knowledge). Short/empty values are ignored (see :func:`register_secret`);
+    idempotent; never persisted.
+    """
+    if not dsn:
+        return
+    register_secret(dsn)
+    parsed = urlsplit(dsn.strip())
+    if parsed.password:
+        register_secret(parsed.password)
+
+
+def clear_registered_secrets() -> None:
+    """Drop every registered secret (used by tests to keep the registry isolated)."""
+    _REGISTERED_SECRETS.clear()
+
 
 def _looks_high_entropy(token: str, *, min_bits_per_char: float = 3.2) -> bool:
     if len(token) < 32:
@@ -78,19 +135,38 @@ def _looks_high_entropy(token: str, *, min_bits_per_char: float = 3.2) -> bool:
     return entropy >= min_bits_per_char
 
 
-def scrub(text: str, *, disabled: bool = False) -> tuple[str, int]:
+def scrub(
+    text: str, *, disabled: bool = False, extra_secrets: tuple[str, ...] = ()
+) -> tuple[str, int]:
     """Replace secret-looking substrings with `«redacted:<kind>»`.
 
     Returns `(scrubbed_text, redaction_count)`. `redaction_count` feeds directly into
     `Meta.redactions` (T-008). Pass `disabled=True` to bypass entirely — that must be
     an explicit, logged operator action (`MCP_REDACT_DISABLED=true`), never a silent
     default.
+
+    Any value registered via :func:`register_secret` (plus `extra_secrets` for this
+    call) is redacted **by exact value, first**, before the shape/label/entropy passes
+    — this is how an opaque configured credential such as the read-only Atlassian API
+    token (T-121, FR-025) is guaranteed to be scrubbed on both the tool/result boundary
+    and the error/log path even though its text carries no recognisable secret shape.
     """
     if disabled or not text:
         return text, 0
 
     count = 0
     result = text
+
+    # T-121: value-based pass first — redact every registered/extra secret by its exact
+    # value (longest first, so a token that contains a shorter one is handled whole).
+    configured = {s.strip() for s in (*_REGISTERED_SECRETS, *extra_secrets) if s and s.strip()}
+    for secret in sorted(configured, key=len, reverse=True):
+        if len(secret) < _MIN_REGISTERED_SECRET_LEN:
+            continue
+        if secret in result:
+            occurrences = result.count(secret)
+            result = result.replace(secret, _REDACTED.format(kind="credential"))
+            count += occurrences
 
     for kind, pattern in _FIXED_SHAPE_PATTERNS:
         result, n = pattern.subn(_REDACTED.format(kind=kind), result)

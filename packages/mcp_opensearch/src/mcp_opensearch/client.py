@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from mcp_common.config import CommonSettings
+from mcp_common.egress import check_egress
 from mcp_common.errors import (
     ErrorCode,
     NotPermittedError,
@@ -34,6 +35,7 @@ from mcp_common.errors import (
     map_exception_to_tool_error,
 )
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 from opensearchpy import AsyncOpenSearch
 from opensearchpy import exceptions as osx
 from opensearchpy._async.transport import AsyncTransport
@@ -130,7 +132,16 @@ def assert_request_allowed(method: str, url: str, params: Mapping[str, Any] | No
 
 
 class ReadOnlyTransport(AsyncTransport):
-    """`AsyncTransport` that refuses non-allowlisted requests before any I/O."""
+    """`AsyncTransport` that refuses non-allowlisted requests before any I/O.
+
+    When ``MCP_EGRESS_ALLOWLIST`` enforcement is turned on for this transport (the
+    ingest-pull path sets ``enforce_egress=True`` on the client — CHG-003, ADR-0023 §6a),
+    every request is also routed through the one ``mcp_common.egress.check_egress``
+    default-deny choke point (L-001) before I/O: an OpenSearch host not on the allow-list is
+    refused fail-closed. The MCP server leaves it off and keeps reaching its own upstream.
+    """
+
+    _enforce_egress: bool = False
 
     async def perform_request(  # type: ignore[override]
         self,
@@ -141,7 +152,17 @@ class ReadOnlyTransport(AsyncTransport):
         **kwargs: Any,
     ) -> Any:
         assert_request_allowed(method, url, params)
+        if self._enforce_egress:
+            check_egress(self._egress_target())
         return await super().perform_request(method, url, params, *args, **kwargs)
+
+    def _egress_target(self) -> str:
+        """The upstream host this transport dials (from the configured connections)."""
+        for connection in self.connection_pool.connections:
+            host = getattr(connection, "host", None)
+            if host:
+                return str(host)
+        return ""
 
 
 def assert_body_allowed(body: Mapping[str, Any]) -> None:
@@ -232,25 +253,42 @@ class OpenSearchClient:
         *,
         common: CommonSettings | None = None,
         os_client: Any | None = None,
+        enforce_egress: bool = False,
     ) -> None:
         self._settings = settings
         self._common = common or CommonSettings()
         self._host = settings.host_list[0].split("://", 1)[-1].split(":", 1)[0]
-        self._os = os_client or self._build_sdk_client(settings)
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured password for
+        # value-based scrubbing at the single client-construction seam, so an opaque
+        # credential the shape/label/entropy passes cannot recognise is still redacted
+        # from any outbound error/result/log. Covers the live server and the mcp_ingest
+        # OpenSearch connector. Additive; a no-op when no password is configured.
+        if settings.password is not None:
+            register_secret(settings.password.get_secret_value())
+        self._os = os_client or self._build_sdk_client(settings, enforce_egress=enforce_egress)
 
     @staticmethod
-    def _build_sdk_client(settings: Settings) -> AsyncOpenSearch:
+    def _build_sdk_client(settings: Settings, *, enforce_egress: bool = False) -> AsyncOpenSearch:
         auth = (
             (settings.username, settings.password.get_secret_value())
             if settings.username and settings.password
             else None
         )
+        if enforce_egress:
+            # One choke point (L-001): a transport subclass that also runs check_egress.
+            transport_class: type[AsyncTransport] = type(
+                "EgressGuardedReadOnlyTransport",
+                (ReadOnlyTransport,),
+                {"_enforce_egress": True},
+            )
+        else:
+            transport_class = ReadOnlyTransport
         return AsyncOpenSearch(
             hosts=settings.host_list,
             http_auth=auth,
             use_ssl=settings.host_list[0].startswith("https://"),
             verify_certs=settings.verify_certs,
-            transport_class=ReadOnlyTransport,
+            transport_class=transport_class,
             timeout=CHEAP_REQUEST_TIMEOUT_S,
             max_retries=1,
             retry_on_timeout=False,

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# squad-tg — lối tắt điều khiển bridge Telegram ⇄ squad.
+#   ./squad-tg           bật bridge (mặc định) rồi bám theo log
+#   ./squad-tg start     bật nền
+#   ./squad-tg stop      tắt
+#   ./squad-tg status    xem trạng thái
+#   ./squad-tg logs      xem log realtime
+#   ./squad-tg restart   tắt rồi bật lại
+# Chạy từ bất kỳ đâu — tự tìm gốc project.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+CTL="$ROOT/scripts/squad/telegram-bridge-ctl.sh"
+[[ -f "$CTL" ]] || { echo "không thấy $CTL — bạn đã cài OPC Kit vào project này chưa?" >&2; exit 1; }
+
+cmd="${1:-up}"
+case "$cmd" in
+  up)                                   # bật (nếu chưa) rồi theo dõi log
+    bash "$CTL" start
+    echo; echo "— đang bám log (Ctrl-C để thoát, bridge vẫn chạy nền) —"; echo
+    bash "$CTL" logs ;;
+  restart) bash "$CTL" stop || true; bash "$CTL" start ;;
+  start|stop|status|logs) bash "$CTL" "$cmd" ;;
+  *) echo "dùng: $0 {up|start|stop|restart|status|logs}" >&2; exit 2 ;;
+esac

@@ -1,0 +1,407 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MCP Data Platform — kiến trúc hiện tại",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1230,
+      920
+    ],
+    "views": [
+      {
+        "id": "query-path",
+        "label": "Luồng hỏi–đáp",
+        "focus": [
+          "claude",
+          "gateway",
+          "knowledge",
+          "pg"
+        ],
+        "note": "Claude gọi tool qua gateway in-process, Knowledge server chạy Hybrid-RAG trên PostgreSQL+pgvector."
+      },
+      {
+        "id": "ingest-path",
+        "label": "Luồng ingest",
+        "focus": [
+          "sources",
+          "ingest",
+          "pg"
+        ],
+        "note": "CLI ingest đồng bộ nguồn vào kho tri thức, scheduler chạy ngoài."
+      },
+      {
+        "id": "live-path",
+        "label": "Nguồn trực tiếp",
+        "focus": [
+          "gateway",
+          "live_gitlab",
+          "live_jira",
+          "live_confluence"
+        ],
+        "note": "Khi cần dữ liệu mới, gateway định tuyến sang các live MCP server thin-REST."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "claude",
+      "type": "external",
+      "label": "Claude",
+      "sublabel": "LLM client (MCP)",
+      "pos": [
+        520,
+        40
+      ],
+      "size": [
+        220,
+        60
+      ],
+      "tag": "stdio JSON-RPC"
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "Gateway-boundary",
+      "sublabel": "mcp_common.gateway (in-process)",
+      "pos": [
+        470,
+        170
+      ],
+      "size": [
+        340,
+        70
+      ],
+      "tag": "routing · auth · rate-limit · audit"
+    },
+    {
+      "id": "common",
+      "type": "backend",
+      "label": "mcp_common",
+      "sublabel": "runtime · envelope · redact · http",
+      "pos": [
+        950,
+        170
+      ],
+      "size": [
+        220,
+        70
+      ],
+      "tag": "shared lib"
+    },
+    {
+      "id": "knowledge",
+      "type": "backend",
+      "label": "mcp_knowledge",
+      "sublabel": "Hybrid-RAG + grounding",
+      "pos": [
+        90,
+        330
+      ],
+      "size": [
+        240,
+        74
+      ],
+      "tag": "read-only"
+    },
+    {
+      "id": "live_gitlab",
+      "type": "backend",
+      "label": "mcp_gitlab",
+      "sublabel": "thin REST",
+      "pos": [
+        400,
+        330
+      ],
+      "size": [
+        140,
+        60
+      ],
+      "tag": "live"
+    },
+    {
+      "id": "live_jira",
+      "type": "backend",
+      "label": "mcp_jira",
+      "sublabel": "thin REST",
+      "pos": [
+        560,
+        330
+      ],
+      "size": [
+        140,
+        60
+      ],
+      "tag": "live"
+    },
+    {
+      "id": "live_confluence",
+      "type": "backend",
+      "label": "mcp_confluence",
+      "sublabel": "thin REST",
+      "pos": [
+        720,
+        330
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "live"
+    },
+    {
+      "id": "live_infra",
+      "type": "backend",
+      "label": "Infra MCP servers",
+      "sublabel": "7 server hạ tầng / quan sát",
+      "pos": [
+        900,
+        330
+      ],
+      "size": [
+        270,
+        74
+      ],
+      "tag": "opensearch · kibana · cloudwatch · kafka · redis · sqs · pgvector"
+    },
+    {
+      "id": "retrieval",
+      "type": "backend",
+      "label": "Retrieval Engine",
+      "sublabel": "tsvector + pgvector · RRF · rerank · compress",
+      "pos": [
+        70,
+        500
+      ],
+      "size": [
+        290,
+        74
+      ],
+      "tag": "ADR-0020"
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "Company Knowledge Store",
+      "sublabel": "PostgreSQL + pgvector",
+      "pos": [
+        100,
+        680
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "tag": "docs · chunks · embeddings · grants"
+    },
+    {
+      "id": "ingest",
+      "type": "backend",
+      "label": "mcp_ingest",
+      "sublabel": "connectors → normalize → chunk → embed → persist",
+      "pos": [
+        520,
+        640
+      ],
+      "size": [
+        340,
+        78
+      ],
+      "tag": "CLI (ADR-0012)"
+    },
+    {
+      "id": "scheduler",
+      "type": "cloud",
+      "label": "Scheduler",
+      "sublabel": "cron / launchd",
+      "pos": [
+        520,
+        800
+      ],
+      "size": [
+        190,
+        58
+      ],
+      "tag": "ngoài tiến trình"
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Source Systems",
+      "sublabel": "GitLab · Jira · Confluence",
+      "pos": [
+        920,
+        500
+      ],
+      "size": [
+        270,
+        78
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "MCP servers (read-only, stdio)",
+      "wraps": [
+        "knowledge",
+        "live_gitlab",
+        "live_jira",
+        "live_confluence",
+        "live_infra",
+        "retrieval"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Ingest (độc lập, batch)",
+      "wraps": [
+        "ingest",
+        "scheduler"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "claude-gw",
+      "from": "claude",
+      "to": "gateway",
+      "label": "tool call",
+      "variant": "emphasis",
+      "labelDy": 24,
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gw-common",
+      "from": "gateway",
+      "to": "common",
+      "label": "runtime / envelope",
+      "variant": "dashed"
+    },
+    {
+      "id": "gw-knowledge",
+      "from": "gateway",
+      "to": "knowledge",
+      "label": "route",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gw-gitlab",
+      "from": "gateway",
+      "to": "live_gitlab",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gw-jira",
+      "from": "gateway",
+      "to": "live_jira",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gw-confluence",
+      "from": "gateway",
+      "to": "live_confluence",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gw-infra",
+      "from": "gateway",
+      "to": "live_infra",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "k-retrieval",
+      "from": "knowledge",
+      "to": "retrieval",
+      "label": "hybrid search",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "retrieval-pg",
+      "from": "retrieval",
+      "to": "pg",
+      "label": "SQL + vector",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "ingest-pg",
+      "from": "ingest",
+      "to": "pg",
+      "label": "persist (upsert)",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "sched-ingest",
+      "from": "scheduler",
+      "to": "ingest",
+      "label": "trigger",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "live-src",
+      "from": "live_infra",
+      "to": "sources",
+      "label": "live API",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "sources-ingest",
+      "from": "sources",
+      "to": "ingest",
+      "label": "pull (read-only)",
+      "fromSide": "bottom",
+      "toSide": "right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Boundary",
+      "items": [
+        "Gateway in-process: một choke point cho routing + permission + audit + rate-limit",
+        "stdio JSON-RPC, không mở cổng mạng (NFR-005)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Knowledge",
+      "items": [
+        "Hybrid-RAG: tsvector + pgvector + RRF + reranker local + compression",
+        "Grounding gate: FACT / UNKNOWN / CONFLICT, bắt buộc provenance"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Ingest & Store",
+      "items": [
+        "CLI ingest độc lập, scheduler chạy ngoài (ADR-0012)",
+        "PostgreSQL + pgvector là nguồn tri thức duy nhất lúc truy vấn"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Read-only",
+      "items": [
+        "Toàn bộ 10+ MCP server read-only, defense-in-depth (ADR-0003)",
+        "Live server thin-REST chỉ gọi khi cần dữ liệu mới"
+      ]
+    }
+  ]
+}

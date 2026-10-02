@@ -1,23 +1,29 @@
-# CAB approval — mcp-data-platform
+# CAB approval — mcp-data-platform · CHG-003
 
-- **Decision:** APPROVED (go-live)
-- **Approved by:** CEO
-- **At:** 2026-10-01T18:28+07:00
-- **Scope:** 9 read-only MCP servers (Confluence, GitLab, OpenSearch, Kibana, CloudWatch,
-  Kafka, Redis, SQS/SNS, Postgres+pgvector) + ingest/embedding pipeline, per-user local stdio.
-- **Target environment:** local (CEO's machine) — Docker Compose infra + MCP servers over stdio.
-  This architecture has no shared hosted prod; "go-live" = the local deployment the CEO runs.
-- **Go-live ref:** branch claude/zealous-johnson-yb3t2q @ 0363fcc, tag release/mcp-data-platform-20261001.
-- **CEO words:** "hãy deploy trên docker local và demo cho tôi" — approve go-live, deploy on local
-  Docker, then demo.
+- Change ID: CHG-mcp-data-platform-chg003-20261002
+- Status: approved
+- Approved by: CEO
+- Approved at: 2026-10-02T14:57:00+07:00
+- Gate: Gate 2 (CAB go-live)
+- Decision (CEO, nguyên văn ý định): "duyệt go-live, bật ingest thật với confluence" — Option 1.
+- Scope approved: CHG-003 — mở egress thật cho đường ingest-pull (`*.atlassian.net`, Confluence Cloud
+  `https://tnexwm.atlassian.net` trước) + tải model embedding thật một lần từ `huggingface.co` (khi cần
+  đo NFR-003); Atlassian là vendor; token read-only; runbook CLI 9 source (4 ingestable + 5 live-only).
+- DK1 accepted: CEO chấp nhận ship v1 với NFR-003 (chất lượng semantic) CHƯA đo; đo thật bằng model
+  thật là bước @live/spike S2 sau go-live.
+- Target: máy local của CEO (per-user stdio; prod=local). Go-live tag `release/mcp-data-platform-chg003-20261002`.
+- Source: 7-release/cab-pack.md; CTO READY_FOR_CAB = D-007.
+- CHG-001 Company Knowledge: POSTPONED — không nằm trong go-live này.
 
-## Risk acceptance (CTO D-002 conditions)
-- **ĐK1 (accepted):** CEO accepts shipping v1 with NFR-003 semantic quality UNVERIFIED (recall 0.95 is
-  ANN-index correctness under the fake provider; real measurement blocked by HF egress + ADR-0010).
-  To be measured during CHG-001 when egress/model are resolved.
-- **ĐK2:** fix R-006/R-007 migration-locking before CHG-001 epic E1 (next schema change on populated data).
-- **ĐK3:** Redis dev ACL (R-013) never reused for staging/shared.
-- **ĐK4:** follow-ups R-005-secondary / R-012 / R-016.
-- Smoke + 30-min observation must be green post cut-over; any rollback trigger → immediate rollback.
+## Điều kiện go-live (CTO D-007)
+- DK2: smoke prod + cửa sổ quan sát 30 phút xanh (liveness + egress-default-deny + token-không-rò);
+  bất kỳ rollback trigger → rollback ngay <60s + Gate 2 mới.
+- DK4: hardening R-C3-001 trước khi dùng provider=http; fix E-008 ở change kế tiếp an toàn renumber.
+- DK5: ghi id snapshot Postgres khôi phục được trước lần pull thật đầu tiên.
 
-## Source: 7-release/cab-pack.md, 8-gate2/gate-brief.md, records/decisions.md (D-002)
+## Credential (CEO cung cấp)
+- Token read-only Atlassian: `/Users/manh.le/Desktop/MCP/.token-key` (git-ignored).
+- File khai báo thật: `credentials/.ingest-sources.env` (file ẩn, git-ignored) — trỏ
+  `MCP_CONFLUENCE_API_TOKEN_FILE` tới token trên. Còn CHỜ CEO điền: `MCP_CONFLUENCE_EMAIL` +
+  `MCP_INGEST_CONFLUENCE_TEAM_SPACES`.
+- Template chuẩn (committable): `credentials/.ingest-sources.env.example`.

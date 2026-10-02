@@ -35,7 +35,7 @@ from mcp_ingest.settings import Settings
 
 __all__ = ["app", "main"]
 
-SOURCE_CHOICES = ("all", "confluence", "gitlab", "opensearch")
+SOURCE_CHOICES = ("all", "confluence", "gitlab", "opensearch", "jira")
 
 app = typer.Typer(
     name="mcp-ingest",
@@ -136,6 +136,36 @@ def db_upgrade(
     verb = "would apply" if dry_run else "applied"
     typer.echo(f"{verb}: {', '.join(result.applied) or '(nothing)'}")
     typer.echo(f"current version: {result.current_version}")
+
+
+# -- db status ---------------------------------------------------------------------------------
+
+
+@db_app.command("status")
+def db_status(
+    as_json: bool = typer.Option(False, "--json", help="Print a MigrationStatusReport JSON doc."),
+) -> None:
+    """Report which numbered migrations are applied vs pending (read-only; writes nothing).
+
+    Reads through the runtime role (`mcp_ingest_rw`), not the admin DSN — listing migrations does
+    not need DDL rights. Confirms the CHG-001 migrations (0007/0007b/0008) have landed.
+    """
+    settings = _settings()
+    dsn = _runtime_dsn(settings)
+    with _connect(dsn) as conn:
+        try:
+            report = db.migration_status(conn)
+        except db.MigrationError as exc:
+            raise _fail(str(exc)) from exc
+
+    def _human() -> list[str]:
+        lines = [f"current version: {report.current_version or '(none)'}"]
+        lines.append(f"applied ({len(report.applied)}): {', '.join(report.applied) or '(none)'}")
+        lines.append(f"pending ({len(report.pending)}): {', '.join(report.pending) or '(none)'}")
+        lines.extend(f"warning: {w}" for w in report.warnings)
+        return lines
+
+    _emit(report, as_json, _human)
 
 
 # -- run ---------------------------------------------------------------------------------------

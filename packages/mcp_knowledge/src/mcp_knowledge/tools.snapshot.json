@@ -1,0 +1,250 @@
+{
+  "find_related_knowledge": {
+    "description": "Graph traversal nông (recursive CTE ≤3 hop, cycle-detect, fan-out LIMIT) từ một entity. not_found nếu entity gốc không tồn tại; empty nếu không có cạnh.",
+    "inputSchema": {
+      "properties": {
+        "entity": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Entity",
+          "type": "string"
+        },
+        "max_depth": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "rel_types": {
+          "default": [],
+          "items": {
+            "enum": [
+              "depends_on",
+              "documented_by",
+              "owns",
+              "related_to"
+            ],
+            "type": "string"
+          },
+          "title": "Rel Types",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "entity"
+      ],
+      "title": "find_related_knowledgeArguments",
+      "type": "object"
+    }
+  },
+  "get_document_version": {
+    "description": "Lịch sử version của một document (current/superseded) kèm source_version/author/source_updated_at và citation. not_found nếu document không tồn tại hoặc đã tombstone.",
+    "inputSchema": {
+      "properties": {
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "document_id"
+      ],
+      "title": "get_document_versionArguments",
+      "type": "object"
+    }
+  },
+  "get_jira_context": {
+    "description": "Ngữ cảnh công việc hiện tại cho một entity/topic: hợp nhất Jira live + snapshot, trả grounded claim. UNKNOWN khi không nguồn.",
+    "inputSchema": {
+      "properties": {
+        "subject": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "top_k": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "subject"
+      ],
+      "title": "get_jira_contextArguments",
+      "type": "object"
+    }
+  },
+  "get_knowledge_summary": {
+    "description": "Summary đã sinh cho một entity/topic kèm provenance (đọc kb.knowledge_summaries). not_found nếu chưa có summary cho subject.",
+    "inputSchema": {
+      "properties": {
+        "subject": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "subject_type": {
+          "default": "entity",
+          "enum": [
+            "entity",
+            "topic"
+          ],
+          "title": "Subject Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject"
+      ],
+      "title": "get_knowledge_summaryArguments",
+      "type": "object"
+    }
+  },
+  "get_repository": {
+    "description": "Hồ sơ một repository (entity): service liên quan, tài liệu, trạng thái. status=not_found nếu không khớp.",
+    "inputSchema": {
+      "properties": {
+        "name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "get_repositoryArguments",
+      "type": "object"
+    }
+  },
+  "get_service": {
+    "description": "Hồ sơ một service (entity): owner, repo, dependencies và tài liệu liên quan (≤3 hop). status=not_found nếu không có service khớp.",
+    "inputSchema": {
+      "properties": {
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "get_serviceArguments",
+      "type": "object"
+    }
+  },
+  "search_code": {
+    "description": "Tìm code trong corpus đã index (chunk source_type=gitlab) bằng keyword simple ∪ vector, RRF. Citation trỏ về source_uri GitLab gốc. status=empty khi không khớp.",
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "maxLength": 2048,
+          "minLength": 2,
+          "title": "Query",
+          "type": "string"
+        },
+        "top_k": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "search_codeArguments",
+      "type": "object"
+    }
+  },
+  "search_company_knowledge": {
+    "description": "Hybrid-RAG grounded search về công ty: trả claim có verdict + provenance per-claim, kèm citation về nguồn gốc. Không có nguồn ⇒ UNKNOWN với thông điệp cố định, không bịa.",
+    "inputSchema": {
+      "properties": {
+        "fact_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fact Type"
+        },
+        "include_live": {
+          "default": true,
+          "title": "Include Live",
+          "type": "boolean"
+        },
+        "query": {
+          "maxLength": 4096,
+          "minLength": 3,
+          "title": "Query",
+          "type": "string"
+        },
+        "source_types": {
+          "default": [],
+          "items": {
+            "enum": [
+              "confluence",
+              "gitlab",
+              "opensearch",
+              "kibana",
+              "cloudwatch",
+              "kafka",
+              "redis",
+              "sqs",
+              "sns",
+              "pgvector",
+              "jira"
+            ],
+            "type": "string"
+          },
+          "maxItems": 11,
+          "title": "Source Types",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "top_k": {
+          "default": 8,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "search_company_knowledgeArguments",
+      "type": "object"
+    }
+  }
+}

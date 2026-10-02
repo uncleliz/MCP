@@ -15,8 +15,10 @@ members = [
     "mcp-data-platform-workspace",
     "mcp-gitlab",
     "mcp-ingest",
+    "mcp-jira",
     "mcp-kafka",
     "mcp-kibana",
+    "mcp-knowledge",
     "mcp-opensearch",
     "mcp-pgvector",
     "mcp-redis",
@@ -1717,6 +1719,27 @@ requires-dist = [
 provides-extras = ["local-embeddings"]
 
 [[package]]
+name = "mcp-jira"
+version = "0.1.0"
+source = { editable = "packages/mcp_jira" }
+dependencies = [
+    { name = "httpx" },
+    { name = "mcp" },
+    { name = "mcp-common" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp", specifier = "<2" },
+    { name = "mcp-common", editable = "packages/mcp_common" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pydantic-settings", specifier = ">=2.4" },
+]
+
+[[package]]
 name = "mcp-kafka"
 version = "0.1.0"
 source = { editable = "packages/mcp_kafka" }
@@ -1757,6 +1780,38 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pydantic-settings", specifier = ">=2.4" },
 ]
+
+[[package]]
+name = "mcp-knowledge"
+version = "0.1.0"
+source = { editable = "packages/mcp_knowledge" }
+dependencies = [
+    { name = "mcp" },
+    { name = "mcp-common" },
+    { name = "mcp-ingest" },
+    { name = "pgvector" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+]
+
+[package.optional-dependencies]
+local-reranker = [
+    { name = "sentence-transformers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mcp", specifier = "<2" },
+    { name = "mcp-common", editable = "packages/mcp_common" },
+    { name = "mcp-ingest", editable = "packages/mcp_ingest" },
+    { name = "pgvector", specifier = ">=0.3" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pydantic-settings", specifier = ">=2.4" },
+    { name = "sentence-transformers", marker = "extra == 'local-reranker'", specifier = ">=3.0" },
+]
+provides-extras = ["local-reranker"]
 
 [[package]]
 name = "mcp-opensearch"

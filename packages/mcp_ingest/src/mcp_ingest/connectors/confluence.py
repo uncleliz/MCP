@@ -54,7 +54,9 @@ def build(settings: Settings) -> ConfluenceConnector:
     from mcp_common.config import load_settings
 
     return ConfluenceConnector(
-        ConfluenceClient(load_settings(ConfluenceSettings, source="confluence")),
+        ConfluenceClient(
+            load_settings(ConfluenceSettings, source="confluence"), enforce_egress=True
+        ),
         team_spaces=split_csv(settings.confluence_team_spaces),
     )
 

@@ -18,3 +18,9 @@
 | [0014](0014-mcp-prompts-for-cross-source-synthesis.md) | MCP Prompts làm cơ chế tổng hợp đa nguồn & kỷ luật citation | accepted | 2026-10-01 |
 | [0015](0015-untrusted-content-and-redaction.md) | Xử lý nội dung không tin cậy: chống prompt injection + redaction secret | accepted | 2026-10-01 |
 | [0016](0016-document-visibility-and-future-rbac.md) | Cột `visibility` và đường mở sang RBAC per-user khi chuyển remote (corpus team-only, default-deny S5) | accepted | 2026-10-01 |
+| [0017](0017-chg001-company-knowledge-deviation.md) | CHG-001 Company Knowledge layer lệch khỏi baseline (deviation) — **accepted (CEO Gate 1): Option C** | accepted | 2026-10-01 |
+| [0018](0018-grounding-evidence-contract.md) | Grounding/Evidence contract — company fact phải có evidence, không evidence → UNKNOWN (confidence deterministic D1; ngưỡng τ chờ eval) | proposed | 2026-10-01 |
+| [0019](0019-jira-source-thin-rest.md) | Jira nguồn #10 — thin REST read-only, flavor Cloud/Server split (CHG-001) | accepted | 2026-10-01 |
+| [0020](0020-hybrid-rag-reranker-local.md) | Hybrid-RAG trong một Postgres — tsvector+pgvector+RRF+reranker local offline + compression (CHG-001) | proposed | 2026-10-01 |
+| [0021](0021-gateway-boundary-in-process.md) | Company MCP gateway-boundary in-process (giữ stdio) — routing/permission/audit/rate-limit (CHG-001) | accepted | 2026-10-01 |
+| [0022](0022-knowledge-domains-cte-migration-locking.md) | 4 domain Company Knowledge + recursive CTE + migration-locking DK2/DK3 (CHG-001) | accepted | 2026-10-01 |

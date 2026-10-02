@@ -1,0 +1,25 @@
+[project]
+name = "mcp-jira"
+version = "0.1.0"
+description = "Read-only MCP server for Jira (CHG-001 source #10, thin REST, Cloud/Server-DC)."
+requires-python = ">=3.12"
+dependencies = [
+  "mcp-common",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
+]
+
+[project.scripts]
+mcp-jira = "mcp_jira.cli:main"
+
+[tool.uv.sources]
+mcp-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_jira"]

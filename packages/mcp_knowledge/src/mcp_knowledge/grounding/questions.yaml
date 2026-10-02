@@ -1,0 +1,41 @@
+# Company Questions — grounding eval golden-set (SKELETON, T-108).
+#
+# This is a labelled skeleton of the "100 Company Questions" golden-set. It ships a handful of
+# representative cases so the harness runs end-to-end on the deterministic fake provider NOW; it is
+# ready to grow to the full 100 once HF egress is cleared and a REAL corpus + measured embedding/
+# rerank are available (NFR-003/NFR-010).
+#
+# THRESHOLD TBD (NFR-010, L-002) — chốt khi gỡ egress HF chạy golden-set thật
+# Recall/precision and τ_fact/τ_low are NOT claimed from this skeleton; they are measured only on
+# the real golden-set after egress. `expect` documents the verdict family a case should land in.
+#
+# Fields per case:
+#   id        — stable case id
+#   question  — the company question asked
+#   expect    — FACT | UNKNOWN | CONFLICT | LOW_CONFIDENCE (the contract-expected verdict family)
+#   fact_type — source-authority fact type (runtime_config | architecture | current_work_status | code_behavior)
+
+- id: Q-001
+  question: "Payment-service kết nối timeout là bao nhiêu?"
+  expect: FACT
+  fact_type: runtime_config
+
+- id: Q-002
+  question: "SLA uptime của một dịch vụ không có tài liệu nào ghi lại?"
+  expect: UNKNOWN
+  fact_type: architecture
+
+- id: Q-003
+  question: "Read timeout là bao nhiêu khi hai nguồn ghi khác nhau?"
+  expect: CONFLICT
+  fact_type: runtime_config
+
+- id: Q-004
+  question: "Kiến trúc tổng thể của hệ thống thanh toán?"
+  expect: FACT
+  fact_type: architecture
+
+- id: Q-005
+  question: "Trạng thái công việc hiện tại của sprint này?"
+  expect: FACT
+  fact_type: current_work_status

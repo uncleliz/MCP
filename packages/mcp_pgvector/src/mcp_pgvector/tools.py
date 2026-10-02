@@ -38,7 +38,7 @@ TOOL_DESCRIPTIONS: dict[str, str] = {
 
 SourceTypeName = Literal[
     "confluence", "gitlab", "opensearch", "kibana", "cloudwatch", "kafka", "redis", "sqs",
-    "sns", "pgvector",
+    "sns", "pgvector", "jira",
 ]  # fmt: skip
 SourceTypes = Annotated[
     list[SourceTypeName],

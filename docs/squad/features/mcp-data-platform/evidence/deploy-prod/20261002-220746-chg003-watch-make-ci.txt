@@ -1,0 +1,29 @@
+# chg003-watch · make ci (post-reembed no-regression)
+# NOTE: 'make ci' runs 'ruff check .' which flags 3 PRE-EXISTING untracked deploy-stage
+#   evidence scripts (chg003_ea_pull.py / chg003_hf_download.py / chg003_space_discovery.py).
+#   Those are not product code, not git-tracked, and not created by this watch task.
+#   Product code (packages/, scripts/) + my nfr003_measure.py lint CLEAN. CI below excludes
+#   the untracked evidence dir to reflect the committed tree a CI runner would see.
+# date: 2026-10-02T15:07:46Z
+========================================================================
+## lint (excluding untracked evidence)
+All checks passed!
+## typecheck
+Success: no issues found in 187 source files
+## coverage (full test suite)
+SKIPPED [1] packages/mcp_pgvector/tests/test_settings_cli.py:91: no local PostgreSQL server binaries (initdb) found; use the live tests
+SKIPPED [1] packages/mcp_pgvector/tests/test_settings_cli.py:150: no local PostgreSQL server binaries (initdb) found; use the live tests
+SKIPPED [1] packages/mcp_pgvector/tests/test_timeout_budget.py:73: no local PostgreSQL server binaries (initdb) found; use the live tests
+SKIPPED [1] packages/mcp_pgvector/tests/test_timeout_budget.py:94: no local PostgreSQL server binaries (initdb) found; use the live tests
+SKIPPED [1] packages/mcp_pgvector/tests/test_timeout_budget.py:192: no local PostgreSQL server binaries (initdb) found; use the live tests
+SKIPPED [1] packages/mcp_redis/tests/test_integration.py:27: live integration test: needs real credentials/VPN or the Docker compose stack (set MCP_LIVE_TESTS=1 to run)
+SKIPPED [1] packages/mcp_sqs_sns/tests/test_integration.py:23: live integration test: needs real credentials/VPN or the Docker compose stack (set MCP_LIVE_TESTS=1 to run)
+========== 2376 passed, 174 skipped, 2 warnings in 168.64s (0:02:48) ===========
+## validate-contract
+uv run python scripts/validate_contract.py "$(uv run python -c 'from mcp_common.contract_testing import find_contract_path; print(find_contract_path())')"
+OK: /Users/manh.le/Desktop/MCP/docs/squad/features/mcp-data-platform/4-design/api-contract.yaml is a valid contract
+## readonly
+packages/mcp_redis/tests/test_tools_readonly.py ..........               [ 93%]
+packages/mcp_sqs_sns/tests/test_tools_readonly.py ..............         [100%]
+
+==================== 215 passed, 2335 deselected in 20.60s =====================

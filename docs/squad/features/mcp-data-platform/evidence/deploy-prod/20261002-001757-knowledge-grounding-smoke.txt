@@ -1,0 +1,158 @@
+# CHG-001 T-110 grounding stdio smoke — 20261002-001758Z
+# pgvector throw-away DBs in container mcp-dev-postgres:5433 (live mcp_kb untouched)
+#   A sourced=t_t110_d801b9f812   B empty=t_t110_10aee48811
+# embedding: DeterministicFakeProvider fake/hashed-bow / 1024d over local http stub (HF egress blocked, NFR-003 UNVERIFIED — relevance NOT measured)
+
+migrations: real upgrade() applied to BOTH DBs (chain incl 0007 / 0007b content_tsv+GIN / 0008)
+A seeded: 2 sourced docs + '*team*' read grants
+B seeded: nothing (empty corpus)
+read roles: throw-away t110_ro_d801b9f812 / t110_ro_10aee48811 (members of mcp_query_ro; real roles untouched)
+
+--- mcp-knowledge tools/list (read-only surface) ---
+[
+  "find_related_knowledge",
+  "get_document_version",
+  "get_jira_context",
+  "get_knowledge_summary",
+  "get_repository",
+  "get_service",
+  "search_code",
+  "search_company_knowledge"
+]
+
+--- A) SOURCED query: 'how many times does the payment worker retry failed transactions' ---
+verdict summary: {"status": "ok", "fact": 1, "low_confidence": 1, "unknown": 0, "conflict": 0, "calibration_status": "uncalibrated", "reranker": "disabled", "n_claims": 2, "n_citations": 2, "first_claim_verdict": "FACT", "first_claim_message": null}
+{
+  "status": "ok",
+  "claims": [
+    {
+      "text": "The payment worker retries failed transactions three times with exponential backoff before moving the message to the dead letter queue payment-retry-dlq.",
+      "grounding": "FACT",
+      "confidence": 0.766837,
+      "confidence_basis": "evidence-strength (retrieval×agreement×freshness), NOT P(claim true)",
+      "provenance": [
+        {
+          "source": "confluence",
+          "updated_time": "1970-01-01T00:00:00Z",
+          "evidence": {
+            "document_id": "139e46ec-a666-464f-88ec-9adb5c25fe2c",
+            "chunk_id": "139e46ec-a666-464f-88ec-9adb5c25fe2c#1",
+            "url": "https://wiki.example.test/PAY/payment-retry",
+            "source_uri": "https://wiki.example.test/PAY/payment-retry"
+          },
+          "source_version": null,
+          "owner": null,
+          "synced_at": null,
+          "confidence": 0.766837
+        }
+      ],
+      "positions": [],
+      "authority_note": null,
+      "message": null
+    },
+    {
+      "text": "The payments worker handles ERR_PAYMENT_TIMEOUT and retries three times in the release pipeline before alerting.",
+      "grounding": "LOW_CONFIDENCE",
+      "confidence": 0.0,
+      "confidence_basis": "evidence-strength (retrieval×agreement×freshness), NOT P(claim true)",
+      "provenance": [
+        {
+          "source": "gitlab",
+          "updated_time": "1970-01-01T00:00:00Z",
+          "evidence": {
+            "document_id": "a3917c79-3146-4865-a031-a624227bb7a7",
+            "chunk_id": "a3917c79-3146-4865-a031-a624227bb7a7#2",
+            "url": "https://gitlab.example.test/payments/worker/README",
+            "source_uri": "https://gitlab.example.test/payments/worker/README"
+          },
+          "source_version": null,
+          "owner": null,
+          "synced_at": null,
+          "confidence": 0.0
+        }
+      ],
+      "positions": [],
+      "authority_note": null,
+      "message": null
+    }
+  ],
+  "grounding_summary": {
+    "fact": 1,
+    "low_confidence": 1,
+    "unknown": 0,
+    "conflict": 0,
+    "reranker": "disabled",
+    "calibration_status": "uncalibrated"
+  },
+  "citations": [
+    {
+      "source_type": "confluence",
+      "label": "confluence: 139e46ec-a666-464f-88ec-9adb5c25fe2c",
+      "uri": "https://wiki.example.test/PAY/payment-retry",
+      "locator": {
+        "document_id": "139e46ec-a666-464f-88ec-9adb5c25fe2c"
+      },
+      "retrieved_at": null
+    },
+    {
+      "source_type": "gitlab",
+      "label": "gitlab: a3917c79-3146-4865-a031-a624227bb7a7",
+      "uri": "https://gitlab.example.test/payments/w
+
+--- B) NO-SOURCE query (empty corpus): 'quarterly revenue of the Antarctic penguin division in 1812' ---
+verdict summary: {"status": "insufficient_evidence", "fact": 0, "low_confidence": 0, "unknown": 1, "conflict": 0, "calibration_status": "uncalibrated", "reranker": "disabled", "n_claims": 1, "n_citations": 0, "first_claim_verdict": "UNKNOWN", "first_claim_message": "Tôi không tìm thấy nguồn chính thức xác nhận thông tin này."}
+{
+  "status": "insufficient_evidence",
+  "claims": [
+    {
+      "text": "quarterly revenue of the Antarctic penguin division in 1812",
+      "grounding": "UNKNOWN",
+      "confidence": null,
+      "confidence_basis": null,
+      "provenance": [],
+      "positions": [],
+      "authority_note": null,
+      "message": "Tôi không tìm thấy nguồn chính thức xác nhận thông tin này."
+    }
+  ],
+  "grounding_summary": {
+    "fact": 0,
+    "low_confidence": 0,
+    "unknown": 1,
+    "conflict": 0,
+    "reranker": "disabled",
+    "calibration_status": "uncalibrated"
+  },
+  "citations": [],
+  "meta": {
+    "source": "pgvector",
+    "returned": 1,
+    "has_more": false,
+    "next_cursor": null,
+    "truncated": false,
+    "elapsed_ms": 30,
+    "as_of": "2026-10-02T00:17:59.917373Z",
+    "query_echo": {
+      "query": "quarterly revenue of the Antarctic penguin division in 1812",
+      "top_k": 8
+    },
+    "warnings": [
+      "no official source found"
+    ],
+    "redactions": 0,
+    "data_freshness": null
+  }
+}
+
+--- C) write probe kb_delete_document (must not exist / be refused) ---
+{
+  "isError": true,
+  "structuredContent": null
+}
+
+=== RESULT ===
+A sourced  -> FACT    : PASS  (status=ok, fact=1, citations=2)
+B no-source-> UNKNOWN : PASS  (status=insufficient_evidence, first=UNKNOWN, fact=0)
+C write tool refused  : PASS
+
+# throw-away DBs t_t110_d801b9f812 / t_t110_10aee48811 + roles t110_ro_d801b9f812 / t110_ro_10aee48811 dropped

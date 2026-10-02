@@ -1,0 +1,56 @@
+=== CHG-003 WATCH — FINAL SAMPLE (watch close) ===
+sampled_at        = 2026-10-02T22:25:44+07:00
+window_start      = 2026-10-02T15:48:35+07:00
+window_end_target = 2026-10-02T16:18:35+07:00  (30 min)
+note: sampled long past the 30-min target; DM already spot-checked all invariants holding.
+      This is the FINAL confirming read before closing the window GREEN.
+
+--- DK2 TRIGGER 1 · liveness (container + read-only gate) ---
+container: mcp-dev-postgres  Up 28 hours (healthy)
+db=mcp_kb on 127.0.0.1:5433, pgvector 0.8.6, role mcp_query_ro (read-only)
+=> GREEN (no breach)
+
+--- DK2 TRIGGER 2 · SLI row counts (stable; expected post-reembed state) ---
+  documents | 3
+  chunks    | 27
+embedding_model distribution across chunks:
+  BAAI/bge-m3 | 27        <- ALL 27 chunks carry the real model after the 22:03 NFR-003 reembed.
+This is the EXPECTED post-reembed state (half-migration guard clear), NOT drift:
+ - pre-reembed the chunks carried fake/hashed-bow; the authorised reembed (--model BAAI/bge-m3,
+   provider=local, HF offline) rewrote embeddings in place; row counts unchanged (3 docs / 27 chunks).
+ - the 25-chunk EA doc (1c274560, page 1165426720) + 2 Oct-1 demo chunks = 27, same as pre-reembed.
+=> GREEN (counts stable, model=1 value, no drift)
+
+--- DK2 TRIGGER 3 · egress default-deny invariant ---
+empty-allowlist host_allowed(huggingface.co)      = False   (deny-all)
+empty-allowlist host_allowed(evil.example.com)    = False   (deny-all)
+empty-allowlist host_allowed(tnexwm.atlassian.net)= False   (deny-all)
+atlassian-only  host_allowed(tnexwm.atlassian.net)= True     (ALLOWED, as configured)
+atlassian-only  host_allowed(huggingface.co)      = False    (DENIED)
+atlassian-only  host_allowed(evil.example.com)    = False    (DENIED)
+single choke point: mcp_common.egress.check_egress / host_allowed; default empty = deny-all.
+=> GREEN (default-deny holds; only *.atlassian.net dialable when configured; HF + evil denied)
+
+--- DK2 TRIGGER 4 · token-never-leak invariant (E-009) ---
+.token-key: gitignored (git check-ignore .token-key -> .token-key); NOT tracked (git ls-files empty).
+token-value sweep:
+  tracked files: no ATATT3<...> Atlassian token shape found.
+  evidence/deploy-prod/: no ATATT3<...> token found (leak_flag=0).
+  the only 'Confluence-token-api-key' string is a PLACEHOLDER the DM recorded in state.json
+  (CEO's label, not a real secret); the real token value appears nowhere committed.
+E-009 scrub wiring (register_secret at all 11 client constructors) verified-closed earlier.
+=> GREEN (token never leaked; nothing secret tracked/committed/in evidence)
+
+--- DK2 TRIGGER 5 · ingest last-run status (error rate) ---
+kb.ingest_runs (latest 3, newest first):
+  confluence | success | 2026-10-02 15:03:25Z | upserted=0 chunks_written=27   <- the 22:03 local reembed
+  confluence | success | 2026-10-02 08:46:36Z | upserted=1 chunks_written=25   <- the 15:48 local EA real pull
+  confluence | success | 2026-10-01 14:16:52Z | upserted=0 chunks_written=0
+kb.ingest_source_state: confluence last_success_at=2026-10-02 08:46:39Z last_run_id=f1d5f679-...
+error rate = 0 (every confluence run status=success; 0 errors)
+=> GREEN (last run success, 0 errors)
+
+=== VERDICT: GREEN — all 5 DK2 watch triggers hold, no breach, NO rollback needed ===
+SLI read-out: error rate = 0 (ingest success, doctor read-only ok); p95 = n/a (per-user stdio,
+no network listener — SLI is liveness); egress_denied on configured host = 0, on unlisted host =
+refused as designed. staleness ~0.

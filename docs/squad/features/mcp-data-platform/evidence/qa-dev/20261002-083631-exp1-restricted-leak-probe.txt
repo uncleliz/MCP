@@ -1,0 +1,54 @@
+# CHG-001 EXP-1 restricted-leak probe (TC-090 adversarial) -- 20261002-013632Z
+# pgvector throw-away DB in mcp-dev-postgres:5433 (live mcp_kb untouched); db=t_exp1_2534615f17
+# one SOURCED doc matching the query, granted ONLY to 'restricted-group-x', not *team*
+
+--- result (restricted corpus, un-granted caller) ---
+{
+  "status": "insufficient_evidence",
+  "claims": [
+    {
+      "text": "how many times does the payment worker retry failed transactions",
+      "grounding": "UNKNOWN",
+      "confidence": null,
+      "confidence_basis": null,
+      "provenance": [],
+      "positions": [],
+      "authority_note": null,
+      "message": "Tôi không tìm thấy nguồn chính thức xác nhận thông tin này."
+    }
+  ],
+  "grounding_summary": {
+    "fact": 0,
+    "low_confidence": 0,
+    "unknown": 1,
+    "conflict": 0,
+    "reranker": "disabled",
+    "calibration_status": "uncalibrated"
+  },
+  "citations": [],
+  "meta": {
+    "source": "pgvector",
+    "returned": 1,
+    "has_more": false,
+    "next_cursor": null,
+    "truncated": false,
+    "elapsed_ms": 40,
+    "as_of": "2026-10-02T01:36:33.026300Z",
+    "query_echo": {
+      "query": "how many times does the payment worker retry failed transactions",
+      "top_k": 8
+    },
+    "warnings": [
+      "no official source found"
+    ],
+    "redactions": 0,
+    "data_freshness": null
+  }
+}
+
+=== RESULT ===
+status='insufficient_evidence' first_verdict='UNKNOWN' n_claims=1 n_citations=0
+leaked_uri=False leaked_title=False leaked_secret=False any_fact=False
+TC-090 restricted doc never a candidate/pack/citation : PASS
+
+# throw-away DB t_exp1_2534615f17 + role exp1_ro_2534615f17 dropped

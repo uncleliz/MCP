@@ -1,0 +1,18 @@
+=== OBSERVATION WINDOW OPEN (30 min) — baseline sample ===
+window_start=2026-10-02T15:48:35+07:00
+window_end_target=2026-10-02T16:18:35+07:00
+--- liveness: container ---
+mcp-dev-postgres Up 21 hours (healthy)
+--- liveness: pgvector doctor (read-only gate) ---
+  config: ok (embedding=http:fake/hashed-bow, dimensions=1024)
+  credentials + read-only check: ok
+    role: mcp_query_ro
+    pgvector: 0.8.6
+--- SLI: row counts (should stay stable; no further writes during watch) ---
+ documents |     3
+ chunks    |    27
+
+--- SLI: egress_denied invariant (unlisted host still refused) ---
+  verified in egress-deny-proof: evil.example.com + huggingface.co -> EgressDenied; tnexwm.atlassian.net -> ALLOWED
+--- error rate: ingest run status ---
+  last confluence run status=success (realpull run_id f1d5f679), 0 errors

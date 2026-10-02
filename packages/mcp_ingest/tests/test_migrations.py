@@ -30,7 +30,25 @@ ALL_VERSIONS = [
     "0004_ingest_state",
     "0005_roles",
     "0006_review_followup",
+    "0007_knowledge_domains",
+    "0007b_knowledge_indexes",
+    "0008_source_authority",
 ]
+
+# File names on disk (the CONCURRENTLY migration carries the `.concurrently` marker).
+ALL_FILES = [
+    "0001_extensions.sql",
+    "0002_schema_kb.sql",
+    "0003_indexes.sql",
+    "0004_ingest_state.sql",
+    "0005_roles.sql",
+    "0006_review_followup.sql",
+    "0007_knowledge_domains.sql",
+    "0007b_knowledge_indexes.concurrently.sql",
+    "0008_source_authority.sql",
+]
+
+LATEST = "0008_source_authority"
 
 
 def _swap_user(dsn: str, user: str) -> str:
@@ -57,7 +75,7 @@ def test_discovers_the_six_numbered_migrations_in_order() -> None:
 
 def test_migrations_dir_exists_and_holds_only_numbered_sql() -> None:
     names = sorted(p.name for p in migrations_dir().iterdir())
-    assert names == [f"{v}.sql" for v in ALL_VERSIONS]
+    assert names == sorted(ALL_FILES)
 
 
 def test_discovery_rejects_a_badly_named_file(tmp_path: Path) -> None:
@@ -77,17 +95,17 @@ def test_discovery_rejects_duplicate_numbers(tmp_path: Path) -> None:
 # -- runner ------------------------------------------------------------------------------------
 
 
-def test_FR_012_AC_001_upgrade_applies_empty_database_up_to_0006(fresh_db: str) -> None:
+def test_FR_012_AC_001_upgrade_applies_empty_database_up_to_latest(fresh_db: str) -> None:
     with psycopg.connect(fresh_db, autocommit=True) as conn:
         result = upgrade(conn)
         assert result.applied == ALL_VERSIONS
         assert result.already_applied == []
-        assert result.current_version == "0006_review_followup"
+        assert result.current_version == LATEST
         assert result.dry_run is False
         recorded = [
             r[0] for r in conn.execute("SELECT version FROM kb.schema_migrations ORDER BY version")
         ]
-        assert recorded == ALL_VERSIONS
+        assert recorded == sorted(ALL_VERSIONS)
 
 
 def test_FR_012_AC_001_upgrade_is_idempotent(fresh_db: str) -> None:
@@ -97,7 +115,7 @@ def test_FR_012_AC_001_upgrade_is_idempotent(fresh_db: str) -> None:
         again = upgrade(conn)
         assert again.applied == []
         assert again.already_applied == ALL_VERSIONS
-        assert again.current_version == "0006_review_followup"
+        assert again.current_version == LATEST
         assert (_columns(conn, "documents"), _columns(conn, "chunks")) == before
 
 
@@ -107,7 +125,7 @@ def test_upgrade_resumes_from_a_partially_migrated_database(fresh_db: str) -> No
         partial = upgrade(conn, migrations=first_five)
         assert partial.current_version == "0005_roles"
         rest = upgrade(conn)
-        assert rest.applied == ["0006_review_followup"]
+        assert rest.applied == ALL_VERSIONS[5:]
         assert rest.already_applied == ALL_VERSIONS[:5]
 
 
@@ -123,7 +141,7 @@ def test_dry_run_after_upgrade_has_nothing_to_apply(fresh_db: str) -> None:
     with psycopg.connect(fresh_db, autocommit=True) as conn:
         upgrade(conn)
         result = upgrade(conn, dry_run=True)
-        assert result.applied == [] and result.current_version == "0006_review_followup"
+        assert result.applied == [] and result.current_version == LATEST
 
 
 def test_a_failing_migration_rolls_back_and_is_not_recorded(fresh_db: str) -> None:
@@ -399,7 +417,7 @@ def test_FR_012_AC_001_cli_db_upgrade_json_matches_the_contract(
         payload = json.loads(result.stdout)
         assert list(Draft202012Validator(schema).iter_errors(payload)) == []
         assert payload["applied"] == expected_applied
-        assert payload["current_version"] == "0006_review_followup"
+        assert payload["current_version"] == LATEST
 
 
 def test_cli_db_upgrade_dry_run_flag(fresh_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -420,7 +438,7 @@ def test_cli_db_upgrade_prints_human_text_without_json_flag(
     monkeypatch.setenv("MCP_INGEST_ADMIN_DSN", fresh_db)
     result = CliRunner().invoke(app, ["db", "upgrade"])
     assert result.exit_code == 0
-    assert "0006_review_followup" in result.stdout
+    assert LATEST in result.stdout
 
 
 def test_cli_db_upgrade_without_a_dsn_exits_2_and_names_the_variable(

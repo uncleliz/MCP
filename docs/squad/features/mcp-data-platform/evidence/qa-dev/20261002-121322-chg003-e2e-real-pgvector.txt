@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.6, pytest-9.1.1, pluggy-1.6.0 -- /Users/manh.le/Desktop/MCP/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/manh.le/Desktop/MCP
+configfile: pyproject.toml
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.15.1, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 10 items
+
+packages/mcp_ingest/tests/test_confluence_cloud_e2e.py::test_TC118_confluence_cloud_e2e_doctor_run_status_then_search PASSED [ 10%]
+packages/mcp_ingest/tests/test_confluence_cloud_e2e.py::test_TC120_pull_is_read_only_to_source_and_writes_only_to_kb PASSED [ 20%]
+packages/mcp_ingest/tests/test_confluence_cloud_e2e.py::test_TC119_unreachable_source_is_partial_and_leaves_the_checkpoint PASSED [ 30%]
+packages/mcp_ingest/tests/test_confluence_cloud_e2e.py::test_TC121_live_confluence_cloud_against_the_real_tenant SKIPPED [ 40%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC122_gitlab_runs_the_same_shape_read_only_through_the_guard PASSED [ 50%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC122_jira_runs_the_same_shape_read_only_through_the_guard PASSED [ 60%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC122_opensearch_is_off_by_default_and_crawls_nothing PASSED [ 70%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC123_opensearch_allowlisted_index_ingests_through_the_same_shape PASSED [ 80%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC122_gitlab_pull_to_an_unconfigured_host_is_denied PASSED [ 90%]
+packages/mcp_ingest/tests/test_source_generalisation_e2e.py::test_TC122_every_ingestable_build_enables_the_guard_no_relaxation PASSED [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] packages/mcp_ingest/tests/test_confluence_cloud_e2e.py:276: live integration test: needs real credentials/VPN or the Docker compose stack (set MCP_LIVE_TESTS=1 to run)
+========================= 9 passed, 1 skipped in 2.29s =========================

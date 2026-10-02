@@ -26,6 +26,7 @@ from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, ToolError
 from mcp_common.http import build_client, request_with_retry
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 from mcp_common.tooling import invalid_input
 
 from mcp_kibana.settings import Settings
@@ -79,6 +80,12 @@ class KibanaClient:
         self._settings = settings
         self._common = common or CommonSettings()
         self._host = httpx.URL(settings.base_url).host
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured password for
+        # value-based scrubbing at the single client-construction seam, so an opaque
+        # credential is redacted from any outbound error/result/log. Additive; no-op when
+        # no password is configured.
+        if settings.password is not None:
+            register_secret(settings.password.get_secret_value())
         auth = (
             (settings.username, settings.password.get_secret_value())
             if settings.username and settings.password

@@ -32,7 +32,7 @@ def test_the_whole_platform_passes_the_cross_cutting_checks(verify) -> None:
     failed = [f"{c.name}: {c.detail}" for c in checks if not c.ok]
     assert failed == []
     names = " ".join(c.name for c in checks)
-    for needle in ("49 tools", "read-only surface [mcp_pgvector]", "unknown write tool", "3 prompts",  # noqa: E501
+    for needle in ("62 tools", "read-only surface [mcp_pgvector]", "unknown write tool", "4 prompts",  # noqa: E501
                    "6 mcp-ingest commands", "config-emit", "Claude Desktop config"):  # fmt: skip
         assert needle in names
     assert len(checks) >= 40

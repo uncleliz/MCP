@@ -1,0 +1,15 @@
+=== CHG-003 deploy Step 1 (escape-hatch) — confluence doctor ===
+timestamp: 2026-10-02T15:35:48+07:00
+base_url: https://tnexwm.atlassian.net/wiki
+flavor: cloud
+email: manhld5@tnexfinance.com.vn
+egress_allowlist: *.atlassian.net
+allow_live_egress: true
+allow_unverified_credentials: true
+team_spaces(len): 0
+token_present(len): 192
+=== doctor output ===
+config: ok (base_url=https://tnexwm.atlassian.net/wiki, flavor=cloud)
+credentials + read-only check: FAILED
+  - account is not read-only (use a viewer-only service account); permitted write operations: create:ac:com.zenuml.confluence-addon-lite:zenuml-content-graph, create:ac:com.zenuml.confluence-addon-lite:zenuml-content-sequence, create:attachment, create:comment, create:database, create:embed, create:folder, create:page, create:slide, create:whiteboard, update:page
+doctor exit_code: 1

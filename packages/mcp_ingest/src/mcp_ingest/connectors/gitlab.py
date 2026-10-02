@@ -64,7 +64,7 @@ def build(settings: Settings) -> GitLabConnector:
     from mcp_common.config import load_settings
 
     return GitLabConnector(
-        GitLabClient(load_settings(GitLabSettings, source="gitlab")),
+        GitLabClient(load_settings(GitLabSettings, source="gitlab"), enforce_egress=True),
         projects=split_csv(settings.gitlab_projects),
         team_projects=split_csv(settings.gitlab_team_projects),
         internal_is_team=settings.gitlab_internal_is_team,

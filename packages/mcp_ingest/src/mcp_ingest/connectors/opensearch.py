@@ -50,7 +50,7 @@ def build(settings: Settings) -> OpenSearchConnector:
 
     os_settings = load_settings(OpenSearchSettings, source="opensearch")
     return OpenSearchConnector(
-        OpenSearchClient(os_settings),
+        OpenSearchClient(os_settings, enforce_egress=True),
         indices=split_csv(settings.opensearch_indices),
         text_field=settings.opensearch_text_field,
         title_field=settings.opensearch_title_field,

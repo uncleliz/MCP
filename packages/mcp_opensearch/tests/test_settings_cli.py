@@ -102,7 +102,11 @@ def test_missing_config_exits_2_naming_variable(
 
 
 def _patch_sdk(monkeypatch: pytest.MonkeyPatch, fake: FakeOpenSearch) -> None:
-    monkeypatch.setattr(OpenSearchClient, "_build_sdk_client", staticmethod(lambda s: fake))
+    monkeypatch.setattr(
+        OpenSearchClient,
+        "_build_sdk_client",
+        staticmethod(lambda s, *, enforce_egress=False: fake),
+    )
 
 
 def test_doctor_ok_and_failed(

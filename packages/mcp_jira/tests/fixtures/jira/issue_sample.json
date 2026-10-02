@@ -1,0 +1,13 @@
+{
+  "issues": [
+    {
+      "key": "PAY-1234",
+      "fields": {
+        "summary": "Retry worker fails after 3 attempts",
+        "status": {"name": "In Progress"},
+        "project": {"key": "PAY"}
+      }
+    }
+  ],
+  "total": 1
+}

@@ -22,6 +22,8 @@ __all__ = [
     "confluence_visibility",
     "gitlab_source_id",
     "gitlab_visibility",
+    "jira_source_id",
+    "jira_visibility",
     "opensearch_alias",
     "opensearch_source_id",
     "opensearch_visibility",
@@ -160,3 +162,34 @@ def opensearch_visibility(index: str, *, allowlist: Collection[str]) -> Visibili
     could read back."""
     declared = {item.lower() for item in allowlist}
     return "team" if opensearch_alias(index).lower() in declared else "restricted"
+
+
+def jira_source_id(issue_key: str) -> str:
+    """The issue **key** (e.g. `PAY-1234`): stable across edits. A project *move* that renames
+    the key forks the document — the old key disappears at the source and is tombstoned by the
+    next full reconcile (ADR-0019: Jira has no reliable delete feed)."""
+    key = str(issue_key).strip().upper()
+    if not re.match(r"^[A-Z][A-Z0-9]+-[0-9]+$", key):
+        raise ValueError(f"Jira issue key must match ^[A-Z][A-Z0-9]+-[0-9]+$, got {issue_key!r}")
+    return key
+
+
+def jira_visibility(
+    *,
+    project_key: str,
+    team_projects: Collection[str],
+    issue_security_level: str | None,
+    project_restricted: bool | None,
+) -> Visibility:
+    """`team` iff the issue carries NO security level, its project is NOT access-restricted, and
+    the operator declared the project team-wide (`MCP_INGEST_JIRA_TEAM_PROJECTS`). Default-deny
+    (ADR-0016 A2 / ADR-0019): a security level, a restricted project, or an unknown
+    (`None`, unverifiable) restriction state never passes."""
+    declared = {key.lower() for key in team_projects}
+    if project_key.lower() not in declared:
+        return "restricted"
+    if issue_security_level:
+        return "restricted"
+    if project_restricted is not False:
+        return "restricted"
+    return "team"

@@ -48,9 +48,14 @@ SERVERS: list[tuple[str, str, str | None, str | None]] = [
     ("mcp_redis", "redis", "ALLOWED_COMMANDS", None),
     ("mcp_sqs_sns", "sqs-sns", "ALLOWED_OPERATIONS", None),
     ("mcp_pgvector", "pgvector", "ALLOWED_STATEMENTS", "semantic_synthesis"),
+    # CHG-001 — source #10 (Jira, ADR-0019) + the Company Knowledge tier (ADR-0017 Option C).
+    ("mcp_jira", "jira", "ALLOWED_OPERATIONS", None),
+    ("mcp_knowledge", "knowledge", None, "company_knowledge_lookup"),
 ]
 SERVER_CLI_NAMES = {pkg: pkg.replace("_", "-") for pkg, *_ in SERVERS}
-EXPECTED_TOOLS = 49
+# 48 base (Phase 1/2 + pgvector) + 5 Jira + 8 Knowledge = 61 default; 62 with the opensearch DSL
+# escape hatch on (TC-104). The script builds opensearch with `allow_dsl=True`, so it expects 62.
+EXPECTED_TOOLS = 62
 EXPECTED_CLI_COMMANDS = ("db", "run", "status", "sources", "reembed", "prune")
 INGEST_CREDENTIAL_MARKERS = (
     "MCP_INGEST_PGVECTOR_DSN", "MCP_INGEST_ADMIN_DSN", "mcp_ingest_rw",
@@ -183,12 +188,12 @@ async def _check_prompts() -> list[Check]:
         if prompt:
             found[prompt] = package
             if prompt not in listed:
-                return [Check("3 prompts present", False, f"{package} does not list {prompt}")]
+                return [Check("4 prompts present", False, f"{package} does not list {prompt}")]
         elif listed:
             return [
-                Check("3 prompts present", False, f"{package} lists unexpected {sorted(listed)}")
+                Check("4 prompts present", False, f"{package} lists unexpected {sorted(listed)}")
             ]
-    return [Check("3 prompts present", len(found) == 3, ", ".join(sorted(found)))]
+    return [Check("4 prompts present", len(found) == 4, ", ".join(sorted(found)))]
 
 
 def check_ingest_cli_commands() -> list[Check]:
@@ -258,9 +263,9 @@ def check_credential_hygiene() -> list[Check]:
 
 
 def _is_documentation_only(text: str, marker: str, package: str) -> bool:
-    """`mcp_pgvector` legitimately *refuses* the write-capable role and says so in messages and
-    comments; what must never happen is reading it from the environment."""
-    if package != "mcp_pgvector":
+    """`mcp_pgvector` and `mcp_knowledge` legitimately *refuse* the write-capable role and say so in
+    messages and comments; what must never happen is reading it from the environment."""
+    if package not in ("mcp_pgvector", "mcp_knowledge"):
         return False
     for line in text.splitlines():
         if marker in line and not line.lstrip().startswith(("#", '"""', "'")):

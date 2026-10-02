@@ -1,0 +1,12 @@
+{
+  "key": "PAY-1234",
+  "fields": {
+    "summary": "Retry worker fails after 3 attempts",
+    "status": {"name": "In Progress"},
+    "project": {"key": "PAY"}
+  },
+  "transitions": [
+    {"id": "31", "name": "Done"}
+  ],
+  "editmeta": {"fields": {"summary": {"operations": ["set"]}}}
+}

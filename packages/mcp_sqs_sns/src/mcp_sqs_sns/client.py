@@ -29,6 +29,7 @@ from botocore.config import Config
 from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, ToolError, map_exception_to_tool_error
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 from mcp_common.runtime import BoundedExecutor
 
 from mcp_sqs_sns.settings import WARN_ACTIONS, Settings
@@ -193,6 +194,12 @@ class SqsSnsClient:
         self._settings = settings
         self._common = common or CommonSettings()
         self._host = f"sqs.{settings.region}.amazonaws.com"
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured AWS secret key for
+        # value-based scrubbing at the single client-construction seam, so a static secret
+        # is redacted from any outbound error/result/log. Additive; no-op when boto3's
+        # default credential chain is used (no static key configured).
+        if settings.aws_secret_access_key is not None:
+            register_secret(settings.aws_secret_access_key.get_secret_value())
         self._factory = client_factory or self._default_factory
         self._executor = executor or BoundedExecutor(max_workers=4)
         self._clients: dict[str, Any] = {}
