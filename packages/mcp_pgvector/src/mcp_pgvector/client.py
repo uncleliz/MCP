@@ -33,6 +33,7 @@ import psycopg
 from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, ToolError, map_exception_to_tool_error
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_dsn_secret
 from mcp_ingest.embedding import EmbeddingModelMismatchError, validate_stored_embeddings
 from mcp_ingest.ports import EmbeddingProvider
 from pgvector.psycopg import register_vector_async
@@ -173,6 +174,10 @@ class PgVectorClient:
     def __init__(self, settings: Settings, *, common: CommonSettings | None = None) -> None:
         self._settings = settings
         self._common = common or CommonSettings()
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured DSN credential for
+        # value-based scrubbing at the single client-construction seam, so a psycopg error
+        # carrying the DSN/password is redacted from any outbound error/result/log. Additive.
+        register_dsn_secret(settings.dsn.get_secret_value())
         self._host = _dsn_host(settings.dsn.get_secret_value())
         self._conn: psycopg.AsyncConnection[Any] | None = None
         self._lock = asyncio.Lock()

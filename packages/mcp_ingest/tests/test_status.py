@@ -70,12 +70,13 @@ def test_FR_012_AC_002_sources_lists_every_connector_with_missing_env(monkeypatc
     payload = json.loads(report.model_dump_json())
     assert_valid(payload, operation_id="ingest_sources")
     rows = {r["source_type"]: r for r in payload["connectors"]}
-    assert set(rows) == {"confluence", "gitlab", "opensearch"}
+    assert set(rows) == {"confluence", "gitlab", "opensearch", "jira"}
     assert rows["opensearch"]["enabled"] is False  # ADR-0012 A5: off by default
     assert "MCP_INGEST_OPENSEARCH_INDICES" in rows["opensearch"]["missing_env"]
     assert rows["confluence"]["configured"] is False
     assert "MCP_CONFLUENCE_API_TOKEN" in rows["confluence"]["missing_env"]
     assert rows["gitlab"]["connector"] == "GitLabConnector"
+    assert rows["jira"]["connector"] == "JiraConnector"
 
 
 def test_sources_reports_configured_when_everything_is_set(monkeypatch) -> None:

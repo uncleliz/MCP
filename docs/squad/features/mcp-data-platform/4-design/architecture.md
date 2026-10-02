@@ -222,6 +222,115 @@ Prompts: `dev_knowledge_lookup` (confluence), `incident_investigation` (cloudwat
 người dùng bật cả 9 server thì tool list ~48 (49 nếu bật DSL) → khuyến nghị trong `docs/claude-usage/` là bật
 theo phase/theo nhu cầu, không bắt buộc bật hết.
 
+## Company Knowledge tier — CHG-001 Option C + B4 Grounding (MỞ RỘNG nền 9-nguồn)
+
+> **Trạng thái.** Phần này **thêm** tầng Company Knowledge lên trên nền 9-nguồn read-only đã go-live
+> (giữ nguyên mọi phần ở trên). Scope = **Option C đã duyệt Gate 1** (ADR-0017 *accepted*) + **B4 Grounding
+> in-scope** (CTO D-004, ADR-0018). Bất biến giữ nguyên: **read-only tuyệt đối** (9 nguồn + Jira, 0 write tool),
+> **stdio NFR-005** (gateway/orchestrator **in-process**, không cổng mạng), **vendors=none + không egress**
+> (reranker/embedding local offline `HF_HUB_OFFLINE=1`), **permission server-side TRƯỚC grounding gate**.
+> ADR mới: [0019](../../adr/0019-jira-source-thin-rest.md) (Jira), [0020](../../adr/0020-hybrid-rag-reranker-local.md)
+> (Hybrid-RAG), [0021](../../adr/0021-gateway-boundary-in-process.md) (gateway-boundary), [0022](../../adr/0022-knowledge-domains-cte-migration-locking.md)
+> (4 domain + DK2/DK3).
+
+### Thành phần mới (bổ sung vào Component view)
+
+```mermaid
+flowchart TB
+  CL[Claude Desktop/Code] -- stdio, giữ NFR-005 --> GW
+  subgraph proc["runtime stdio IN-PROCESS (không cổng mạng)"]
+    GW["mcp_gateway (ADR-0021)<br/>routing · auth-context · rate-limit · audit"]
+    PERM["enforce_permission() — CHOKE POINT #1<br/>default-deny, TRƯỚC context assembly (ADR-0016/0021)"]
+    subgraph know["Knowledge MCP (ADR-0020)"]
+      HR["Hybrid retrieve: pgvector + tsvector + metadata + RRF"]
+      RR["rerank: bge-reranker-v2-m3 local offline (RRF-only fallback cờ)"]
+      CC["context-compression (giữ provenance)"]
+      GATE["context-pack assembler = GROUNDING GATE — CHOKE POINT #2 (ADR-0018)<br/>verdict FACT/LOW_CONFIDENCE/UNKNOWN/CONFLICT + provenance per-claim"]
+    end
+    LJ["Live Jira MCP (ADR-0019) — thin REST read-only, Cloud/Server split"]
+    CTE["relationship traversal: recursive CTE ≤3 hop (ADR-0022)"]
+  end
+  GW --> PERM --> HR --> RR --> CC --> GATE --> CL
+  GW --> LJ
+  GATE -. entities/rel .-> CTE
+  HR --> PG[("Postgres+pgvector schema kb<br/>+ document_versions / entities+relationships / knowledge_summaries / document_permissions")]
+  CTE --> PG
+  ING["mcp-ingest (+ Jira connector)"] --> PG
+```
+
+| Component mới | Trách nhiệm | Không chịu trách nhiệm |
+|---|---|---|
+| `mcp_gateway` (ADR-0021) | boundary **in-process**: routing/discovery Knowledge+Live, auth-context (chủ process ở v1, đặt sẵn per-request cho v1.1), rate-limit token-bucket, audit append-only ra stderr. **Không mở cổng mạng** (giữ NFR-005) | Không là service HTTP; không SSO đầy đủ (v1.1); không đóng grounding verdict |
+| `enforce_permission()` (choke point #1, ADR-0016/0021) | Lọc theo `document_permissions`/`visibility` **default-deny**, **trước** context assembly và grounding gate. Là **MỘT** choke point duy nhất cho **CẢ 8** tool nội dung của tầng Knowledge (`search_company_knowledge`, `get_jira_context`, `search_code`, `get_service`, `get_repository`, `find_related_knowledge`, `get_knowledge_summary`, `get_document_version`): mọi tool chạy đúng một `enforce_permission` (một query `document_grants`) trước khi trả bất kỳ content/`source_uri`/provenance nào. Tài liệu không-quyền không bao giờ là evidence/kết quả cho caller không-quyền | Không đóng verdict grounding (đó là gate #2); không ghi nguồn |
+| Knowledge MCP — Hybrid-RAG (ADR-0020) | pgvector HNSW + tsvector GIN + metadata filter → RRF (k=60) → rerank local offline → context-compression (giữ provenance) | Không gọi API/egress; không rerank online |
+| **context-pack assembler = GROUNDING GATE** (choke point #2, ADR-0018) | Điểm **cuối cùng** mọi claim đi qua: gán verdict `FACT`/`LOW_CONFIDENCE`/`UNKNOWN`/`CONFLICT`, provenance per-claim, `status=insufficient_evidence` khi không claim nào đạt FACT. **Enforce server-side** — không tin Claude tự giác | Không bịa claim; không nén mất provenance; không là gate permission (đó là #1 chạy trước) |
+| Live Jira MCP (ADR-0019) | thin REST read-only Cloud/Server split: `jira_search_issues`/`jira_get_issue`/`jira_list_projects`/`jira_get_sprint`/`jira_list_board_sprints` | Bất kỳ ghi nào (create/transition/comment = 0) |
+| relationship traversal (ADR-0022) | recursive CTE bounded `depth ≤ 3` + cycle-detection + LIMIT fanout trên `kb.entities`/`kb.relationships` | Graph DB/AGE; traversal không bound |
+
+**Hai choke point, hai mục đích khác nhau (L-001 — KHÔNG hai grounding gate):** permission (#1) chạy **trước**
+để loại ứng viên/tài liệu không-quyền; grounding gate (#2) chạy **sau** để đóng verdict. Mỗi cái là **một** choke point
+cấu trúc của riêng nó; chúng không nhân bản nhau. Grounding gate là **duy nhất** cho verdict (ADR-0018 §2):
+không có đường vòng nào đẩy claim ra context-pack mà bỏ qua gate.
+
+**Choke point #1 là tier-wide — MỘT điểm enforce cho CẢ 8 tool nội dung (không chỉ 2 tool grounded):**
+permission server-side (`enforce_permission`, default-deny) chạy **trước** grounding gate cho **tất cả** 8 tool
+trả nội dung của tầng Knowledge — `search_company_knowledge`, `get_jira_context` (2 tool dựng context-pack),
+và `search_code`, `get_service`, `get_repository`, `find_related_knowledge`, `get_knowledge_summary`,
+`get_document_version` (6 tool nội dung còn lại). Mỗi tool đi qua đúng **một** `enforce_permission` (một query
+`document_grants`) trước khi trả bất kỳ content/`source_uri`/provenance nào; không có tool nào là đường vòng
+default-allow quanh choke point. **Corpus team-only** (ADR-0016 A1: `mcp-ingest` từ chối ingest
+`visibility != 'team'`) là **phòng thủ nhiều lớp (defence-in-depth)** đứng **sau** choke point #1 — **KHÔNG**
+còn là rào cản duy nhất ngăn rò rỉ tài liệu không-quyền. Khi permission được dùng cho mục đích v1.1 (RBAC /
+per-request identity / nội dung non-team), choke point #1 là nơi — và là nơi **duy nhất** — enforce cho cả 8
+tool. (Khớp code sau R-C-001: xem `records/errors.md` E-mcp-data-platform-007 và test
+`test_permission_single_chokepoint.py::test_every_content_tool_consults_the_single_permission_seam`.)
+
+### Bề mặt tool Knowledge MCP + Jira (read-only tuyệt đối, 0 write tool)
+
+| Server | Tool | FR (BA sẽ chốt FR mới) |
+|---|---|---|
+| Knowledge MCP | `search_company_knowledge` (hybrid + rerank + grounding envelope), `get_service`, `get_repository`, `search_code`, `get_jira_context`, `find_related_knowledge` (CTE), `get_knowledge_summary`, `get_document_version` | FR-016..FR-02x (TBD — BA) |
+| Live Jira MCP | `jira_search_issues`, `jira_get_issue`, `jira_list_projects`, `jira_get_sprint`, `jira_list_board_sprints` | FR mới nguồn #10 (TBD — BA) |
+
+Mọi tool mới: `x-readonly: true`, `x-side-effects: none`, đi qua đúng choke point read-only của `mcp_common`
+(ADR-0003, 5 lớp) + adversarial test (L-001). Chi tiết schema ở `api-contract.yaml` (envelope grounding tương
+thích ngược ADR-0004).
+
+### Live-vs-Knowledge & freshness (spec §42 source authority)
+`search_company_knowledge` trả **snapshot** (có `data_freshness` + staleness như `kb_list_sources`);
+`get_jira_context`/`jira_*` trả **live**. Khi cùng claim có cả hai và khác giá trị → gate phát `CONFLICT`,
+`authority_note` theo config source-authority theo **loại fact** (runtime/config → GitLab; architecture →
+Confluence; current work status → Jira; code behavior → GitLab), **configurable, không hardcode vào prompt**.
+
+### Document versioning / entities / summaries (ADR-0022)
+- `get_document_version` đọc `kb.document_versions` (lịch sử; rollback/obsolete bản tối thiểu, chain đầy đủ chờ B7 backlog — KHÔNG làm nay).
+- `find_related_knowledge` chạy recursive CTE bounded trên `kb.entities`/`kb.relationships` (≤3 hop).
+- `get_knowledge_summary` đọc `kb.knowledge_summaries` (điền ở ingest, read-only ở Live path).
+
+### B4 Grounding gate — contract enforce được (ADR-0018)
+Verdict per-claim + provenance per-claim; bất biến **enforce ngay** (độc lập ngưỡng): no-evidence ⇒ `UNKNOWN`
+(message cố định "Tôi không tìm thấy nguồn chính thức xác nhận thông tin này."), confidence không "cứu" claim
+không nguồn, ≥2 nguồn mâu thuẫn ⇒ `CONFLICT`. **Confidence = deterministic** `retrieval × agreement × freshness`
+(dạng hình học mặc định, trọng số config `0.5/0.3/0.2` — ADR-0018 D1); **ngưỡng FACT↔LOW_CONFIDENCE = TBD cho
+eval** (L-002/E-004, chặn bởi egress HF — NFR-003 UNVERIFIED), đánh dấu `calibration_status: uncalibrated` trong
+envelope tới khi eval chốt. QA test GT-1..GT-7 (ADR-0018 §6) chạy được ngay cho FACT/UNKNOWN/CONFLICT.
+
+### Epic map E1..E8 (lead dùng để lập plan)
+
+| Epic | Nội dung | ADR / choke point | Phụ thuộc |
+|---|---|---|---|
+| **E1** | Knowledge store schema+ : 4 domain (`document_versions`, `entities`+`relationships`, `knowledge_summaries`, `document_permissions`) + **migration-locking DK2** (NOT VALID + CREATE INDEX CONCURRENTLY ngoài txn, chạy trên pgvector đã có dữ liệu) + DK3 (Redis ACL không tái dùng shared) | ADR-0022 (+0011/0016) | **chặn trước mọi epic khác** (DK2) |
+| **E2** | Jira source #10: thin REST client Cloud/Server split, incremental `updated>=` + full-reconcile tombstone, `visibility` default-deny; Live Jira MCP tools | ADR-0019 (+0007/0011/0012/0016) | E1 (schema) |
+| **E3** | Hybrid-RAG + reranker: tsvector+GIN, RRF k=60, rerank local offline `bge-reranker-v2-m3` (RRF-only fallback cờ), context-compression giữ provenance | ADR-0020 (+0010/0011) | E1; egress HF cho đo chất lượng (NFR-003 UNVERIFIED) |
+| **E4** | Knowledge MCP business tools: `search_company_knowledge`, `get_service`, `get_repository`, `search_code`, `get_jira_context`, `find_related_knowledge`, `get_knowledge_summary`, `get_document_version` (+ envelope grounding) | ADR-0004/0018/0020/0022 | E1,E2,E3 |
+| **E5** | Live-vs-Knowledge + freshness/conflict/source-authority config | ADR-0018 §4 (+ spec §42) | E2,E4 |
+| **E6** | Permission server-side ENFORCE (choke point #1, default-deny, trước context assembly) + adversarial test (L-001) | ADR-0016/0021 | E1,E4 |
+| **E7** | Gateway-boundary in-process: routing/auth-context/rate-limit/audit (giữ stdio, không cổng mạng); đặt sẵn transport-adapter cho HTTP v1.1 | ADR-0021 (+0002/0003) | E4,E6 |
+| **E8** | B4 Grounding gate (context-pack assembler, choke point #2) + confidence deterministic + GT-1..GT-7 contract test; eval/telemetry (ngưỡng τ chốt khi gỡ egress HF) | ADR-0018 | E3,E4,E6 (permission trước gate) |
+
+> E8 grounding gate **phải** nằm sau E6 permission trong đường đi (permission trước grounding). E1 (DK2) là
+> điều kiện chặn vì mọi schema mới chạy trên dữ liệu đã go-live.
+
 ## Data model
 
 Chỉ **một** thành phần có dữ liệu bền vững: kho embedding trong Postgres (schema `kb`).
@@ -341,6 +450,78 @@ khác dùng `mcp_ingest_rw` (ADR-0011 A6).
 
 Phase 1 và 2 **không có migration nào** (stateless) — điều này làm Phase 1/2 nhẹ hơn hẳn và
 Lead nên xếp toàn bộ công việc DB vào Phase 3.
+
+### Company Knowledge domains (CHG-001 Option C, ADR-0022) — thêm vào schema `kb`
+
+Bốn domain mới trong **cùng** schema `kb` (không datastore/extension mới — giữ "một Postgres", spec §4.4):
+
+```mermaid
+erDiagram
+  documents ||--o{ document_versions : "1 - n (lịch sử version)"
+  documents ||--o{ document_permissions : "1 - n (grant default-deny)"
+  entities ||--o{ relationships : "nguồn/đích cạnh có kiểu"
+  entities ||--o{ knowledge_summaries : "subject của summary"
+  document_versions {
+    bigserial id PK
+    uuid document_id FK
+    int version "UNIQUE(document_id, version)"
+    text content_hash
+    text source_version "spec §39 version; có thể null → hạ confidence"
+    text author
+    timestamptz source_updated_at
+    timestamptz created_at
+    text status "minimal: current|superseded (chain đầy đủ chờ B7 backlog)"
+  }
+  entities {
+    uuid id PK
+    text entity_type "service|repository|team|document|topic"
+    text name "UNIQUE(entity_type, name)"
+    jsonb attributes
+    text visibility "team|restricted — default-deny như documents"
+  }
+  relationships {
+    bigserial id PK
+    uuid src_entity_id FK
+    uuid dst_entity_id FK
+    text rel_type "depends_on|documented_by|owns|related_to"
+    jsonb attributes
+    float confidence "evidence-strength của cạnh, KHÔNG phải P(đúng) — L-002"
+  }
+  knowledge_summaries {
+    bigserial id PK
+    text subject_type "entity|topic"
+    text subject_id
+    text summary
+    jsonb provenance "danh sách evidence §39 — không bao giờ nén mất"
+    timestamptz generated_at
+    text embedding_model
+  }
+  document_permissions {
+    bigserial id PK
+    uuid document_id FK
+    text principal "team|user:<id> (v1 = team)"
+    text grant "allow — vắng mặt = deny (default-deny)"
+    timestamptz granted_at
+  }
+```
+
+**Migrations mới (chạy trên pgvector ĐÃ CÓ dữ liệu — DK2 bắt buộc, ADR-0022):**
+
+| File | Nội dung | Luật DK2 |
+|---|---|---|
+| `0007_knowledge_domains.sql` | `document_versions`, `entities`, `relationships`, `knowledge_summaries`, `document_permissions` + `ADD COLUMN` default hằng | FK/CHECK dùng `ADD CONSTRAINT … NOT VALID`; `VALIDATE CONSTRAINT` ở câu **riêng** |
+| `0007b_knowledge_indexes.concurrently.sql` | GIN `tsvector` trên `kb.chunks`; btree `relationships(src_entity_id)`/`(dst_entity_id)`; `document_versions(document_id, version)`; `document_permissions(document_id)` | **`CREATE INDEX CONCURRENTLY`** chạy **ngoài** transaction — runner tách file `*.concurrently.sql` ra autocommit, không gói `BEGIN`; phát hiện index invalid → `DROP`+retry |
+| `0008_source_authority.sql` | bảng/seed config source-authority theo loại fact (spec §42), `confidence.weights`, `freshness_horizon` — **không hardcode vào prompt** | — |
+
+**Luật migration-locking (DK2 — R-006/R-007, gánh trước E1):** mọi lần đổi schema trên dữ liệu đã go-live:
+`ADD CONSTRAINT … NOT VALID` (không khoá full-table) → `VALIDATE` riêng; `CREATE INDEX CONCURRENTLY` ngoài
+transaction; `ADD COLUMN` default hằng (không rewrite, PG≥11); `lock_timeout`+`statement_timeout` ngắn mỗi
+migration; **không** `ALTER COLUMN TYPE` tại chỗ (đổi chiều vector vẫn theo expand→reembed→contract của nền).
+**DK3:** đọc domain mới bằng `mcp_query_ro` (đã có); ghi (summaries ở ingest) bằng `mcp_ingest_rw`; **không**
+tái dùng Redis dev ACL broad grants cho shared env (ghi vào env-promotion CHG-001).
+
+Jira (source #10) không thêm bảng — dùng chung `documents`/`chunks` (ingest) với `source_type='jira'`; Live
+Jira MCP không persist.
 
 ## Key flows
 
@@ -530,6 +711,33 @@ sequenceDiagram
   CL-->>U: Câu trả lời trích dẫn URL **gốc** phía sau embedding + ARN queue (AC-001)
 ```
 
+### CHG-001 — `search_company_knowledge` (grounded, 2 choke point)
+
+Đường đi của một truy vấn Company Knowledge: permission (#1) **trước**, grounding gate (#2) **sau**.
+
+```mermaid
+sequenceDiagram
+  participant CL as Claude
+  participant GW as mcp_gateway (in-process)
+  participant PM as enforce_permission (#1, default-deny)
+  participant HR as Hybrid retrieve (pgvector+tsvector+RRF)
+  participant RR as rerank local offline
+  participant CC as context-compression
+  participant GT as context-pack assembler = GROUNDING GATE (#2)
+  CL->>GW: search_company_knowledge(query)  %% stdio, không cổng mạng
+  GW->>GW: auth-context + rate-limit + audit (ADR-0021)
+  GW->>PM: ứng viên thô
+  PM-->>HR: CHỈ tài liệu caller được phép (restricted bị loại TRƯỚC assembly) %% ADR-0016
+  HR->>RR: top ứng viên (vector ∪ keyword, RRF k=60)
+  RR->>CC: rerank (fallback RRF-only nếu weights chưa nạp — cờ, minh bạch)
+  CC->>GT: claims + provenance (compression KHÔNG nén mất provenance)
+  Note over GT: evidence-check → confidence=retrieval×agreement×freshness (deterministic);<br/>no-evidence ⇒ UNKNOWN (bất kể confidence); ≥2 nguồn mâu thuẫn ⇒ CONFLICT;<br/>ngưỡng FACT↔LOW = TBD/eval → calibration_status=uncalibrated (ADR-0018)
+  GT-->>CL: envelope ADR-0004 + grounding verdict + provenance per-claim<br/>(status=insufficient_evidence nếu không claim nào FACT)
+```
+
+Không có đường vòng nào tới context-pack mà bỏ qua gate (#2) — GT-5 (ADR-0018 §6) assert điều này. Tài liệu
+`restricted` không bao giờ trở thành evidence vì nó đã bị loại ở #1 trước khi retrieve xếp hạng.
+
 ## Cross-cutting
 
 ### AuthN / AuthZ
@@ -684,6 +892,15 @@ compose file mà `squad-backend` sở hữu, nên giữ ở `infra/`).
 
 **Không có FR nào chưa được phủ** (`uncovered_fr` rỗng).
 
+**CHG-001 — FR mới cho BA (chưa có trong requirements.md).** Các tool Company Knowledge + Jira ở trên hiện ánh
+xạ tạm vào FR nền (FR-002/011/013/015) để contract/architecture coi là "đã phủ"; nhưng Company Knowledge là
+**năng lực nghiệp vụ mới** nên BA phải mở FR mới (ví dụ: FR-016 hybrid grounded search, FR-017 Jira nguồn #10
+live+ingest, FR-018 Live-vs-Knowledge/conflict/source-authority, FR-019 permission server-side default-deny,
+FR-020 document versioning/entities/summaries, FR-021 B4 grounding verdict/UNKNOWN/CONFLICT, FR-022
+gateway-boundary in-process). Đánh số/câu chữ chính xác là việc của BA; mỗi tool mới trong `api-contract.yaml`
+mang `x-change: CHG-001` để BA truy ngược. Đây là `uncovered_fr` theo nghĩa "FR chưa viết" — **không** phải FR
+trong requirements.md bị bỏ sót (bộ 15 FR nền vẫn phủ đủ).
+
 ## Security & threat model
 
 Trust boundary: mọi nội dung từ 9 nguồn và từ `kb.chunks` là **untrusted input**; ranh giới tin
@@ -697,6 +914,10 @@ cậy duy nhất là process MCP chạy local bằng credential của chính ng�
 | Secret trong nội dung crawl | Information disclosure (persist vĩnh viễn) | deny-glob + redaction ở stage `redact` **trước** persist; document bị chặn ghi `ingest_failures{blocked_by_policy}` (ADR-0012 A1, ADR-0015 A1, R-002 fix) | NFR-001 |
 | LLM qua nội dung độc | Spoofing / Elevation (prompt injection gián tiếp) | `wrap_untrusted()` + nhãn + giới hạn kích thước (ADR-0015); rủi ro tồn dư có ý thức (R3) | NFR-001 |
 | Tiến trình MCP | Denial of service (OOM/treo) | Trần byte tải về (R-001 fix), `ThreadPoolExecutor` có biên + queue (ADR-0006 A1), deadline tool 25s | NFR-002 |
+| **Company Knowledge: tài liệu `restricted` lọt vào context** | Information disclosure (caller không-quyền thấy evidence) | **`enforce_permission()` default-deny — choke point #1, chạy TRƯỚC context assembly** (ADR-0016/0021) + adversarial test (L-001: caller không-quyền không thấy `restricted` trước khi context-pack lắp) | BR-003, spec §24/§43 |
+| **Company Knowledge: claim bịa / không nguồn rời server** | Spoofing (AI nói fact không có nguồn chính thức) | **Grounding gate server-side — choke point #2** (ADR-0018): no-evidence⇒UNKNOWN, confidence không cứu claim không nguồn, CONFLICT phơi bày; không tin Claude tự giác; GT-1..GT-7 | spec §40, FR-015 |
+| **Jira (nguồn #10) ghi ngược** | Tampering / Elevation | Thin REST read-only (ADR-0019), 0 write tool, transport allowlist GET/HEAD (ADR-0003) + adversarial test | BR-001, NFR-001 |
+| **Gateway-boundary mở bề mặt mạng** | Elevation (nếu thành service HTTP) | Gateway **in-process, KHÔNG cổng mạng** (ADR-0021, giữ NFR-005); SSO/HTTP để v1.1; DK3 Redis ACL không tái dùng shared | NFR-005 |
 
 Trust boundaries, phân loại dữ liệu và xử lý secret được mô tả chi tiết ở **`## Cross-cutting`**
 (AuthN/AuthZ, Validation, Content handling) và các ADR-0003 / 0005 / 0015 / 0016 liên kết ở
@@ -716,6 +937,7 @@ check dạng CLI + structured logs + script tính SLI từ log.
 | Logs | JSON **chỉ ra stderr**: `ts, level, server, tool, request_id, duration_ms, status, error_code, upstream_status, upstream_host, items_returned, truncated, redactions`; không secret/PII (redaction + không log query đầy đủ ở INFO) |
 | Alerts | Không có alerting backend ở v1; "alert" = script đọc log phát hiện error-rate/p95 vượt ngưỡng, chạy tay hoặc trong smoke |
 | Access cho squad | `smoke.sh` và watch đọc health bằng `uv run mcp-<server> doctor`; đọc SLI bằng script tính error-rate/p95 từ `MCP_LOG_FILE` trên N phút gần nhất |
+| **Company Knowledge SLIs (CHG-001)** | Từ log JSON của gateway/gate: **grounding mix** = tỉ lệ `fact`/`low_confidence`/`unknown`/`conflict` per truy vấn (từ `grounding_summary`); **permission-deny rate** = số ứng viên bị `enforce_permission` loại; **reranker status** = tỉ lệ `reranker=disabled` (fallback RRF-only — tín hiệu weights chưa nạp/egress); **grounding-failure** = `status=insufficient_evidence` rate. Ngưỡng chất lượng (recall/NDCG, τ confidence) **chờ eval** khi gỡ egress HF (NFR-003 UNVERIFIED — không đọc proxy là bằng chứng, L-002) |
 
 Mỗi rollback trigger trong `squad-env-promotion` map tới một SLI ở đây: *startup/doctor fail* →
 readiness check; *error rate tăng* → `status=error` rate per tool; *latency vượt* → `duration_ms`
@@ -796,6 +1018,15 @@ tự host. Thiết kế này **không lệch baseline chi phí**:
 - Nếu sau này chốt provider embedding dạng API (ADR-0010 mở), chi phí per-token xuất hiện và phải
   quay lại baseline — hiện **không** nằm trong thiết kế này.
 
+**CHG-001 Option C (vs baseline plan-approval.md — $0 run):** thiết kế này **không lệch baseline chi phí**.
+Không vendor/egress/service HTTP/datastore mới (ADR-0017): gateway là code in-process, reranker
+`bge-reranker-v2-m3` (~568M) **local offline** = RAM/CPU host, Hybrid-RAG + 4 domain + Jira đều trong Postgres
+hiện có. **Run cost ≈ $0/tháng** ngoài hạ tầng đang chạy (as of 2026-10-01). **Build forecast** (từ options.md,
+cho CTO): **22–32 ngày-agent** (E1 schema+DK2 3–4 · E2 Jira 2–3 · E3 Hybrid+rerank 4–6 · E4 Knowledge tools 3–4
+· E5 live/freshness 2–3 · E6 permission 2–3 · E7 gateway-boundary 4–6 · E8 grounding+eval 2–3). Chi phí thật =
+RAM/CPU (reranker + HNSW build) + thời gian vận hành pipeline. **Nếu** build phát hiện cần vendor/egress/service
+mới → ESCALATE (không âm thầm), vì đó rời baseline chi phí + baseline vendors=none.
+
 ## ADRs
 
 | ADR | Quyết định |
@@ -816,6 +1047,12 @@ tự host. Thiết kế này **không lệch baseline chi phí**:
 | [ADR-0014](../../adr/0014-mcp-prompts-for-cross-source-synthesis.md) | MCP Prompts làm cơ chế tổng hợp đa nguồn & kỷ luật citation |
 | [ADR-0015](../../adr/0015-untrusted-content-and-redaction.md) | Xử lý nội dung không tin cậy + redaction secret |
 | [ADR-0016](../../adr/0016-document-visibility-and-future-rbac.md) | Cột `visibility` của `kb.documents` + đường mở sang RBAC per-user khi chuyển remote — **accepted**: corpus team-only, quy tắc default-deny S5, rủi ro tồn dư reconcile (A1–A3) |
+| [ADR-0017](../../adr/0017-chg001-company-knowledge-deviation.md) | **CHG-001 Company Knowledge deviation — accepted (CEO Gate 1): Option C** (gateway in-process giữ stdio, Jira #10, Hybrid-RAG+reranker local, 4 domain, permission server-side; vendors=none, không egress/service HTTP) |
+| [ADR-0018](../../adr/0018-grounding-evidence-contract.md) | **B4 Grounding/Evidence contract** — proposed; verdict FACT/LOW_CONFIDENCE/UNKNOWN/CONFLICT tại context-pack assembler (choke point duy nhất); confidence deterministic `retrieval×agreement×freshness` (D1), ngưỡng FACT↔LOW = TBD/eval (L-002), no-evidence⇒UNKNOWN enforce ngay |
+| [ADR-0019](../../adr/0019-jira-source-thin-rest.md) | **Jira nguồn #10** — thin REST read-only (khuôn ADR-0007), flavor Cloud/Server split, incremental `updated>=` + full-reconcile tombstone, 0 write tool |
+| [ADR-0020](../../adr/0020-hybrid-rag-reranker-local.md) | **Hybrid-RAG** trong một Postgres — tsvector+pgvector+RRF+rerank local offline (`bge-reranker-v2-m3`, RRF-only fallback) + context-compression; proposed (chất lượng chờ gỡ egress HF) |
+| [ADR-0021](../../adr/0021-gateway-boundary-in-process.md) | **Gateway-boundary IN-PROCESS** (giữ stdio, không cổng mạng) — routing/auth-context/rate-limit/audit + permission choke point #1; đường mở HTTP v1.1 chỉ đổi transport |
+| [ADR-0022](../../adr/0022-knowledge-domains-cte-migration-locking.md) | **4 domain Company Knowledge** (versions/entities+relationships/summaries/permissions) + recursive CTE ≤3 hop + **migration-locking DK2** (NOT VALID, CREATE INDEX CONCURRENTLY ngoài txn) + DK3 |
 
 Tám ADR có phần **"Amendments (sau design review 2026-10-01)"** và phần đó là bản chốt hiện
 hành, đè lên phần Decision gốc: ADR-0003 (A1–A3), ADR-0006 (A1–A3), ADR-0007 (A1–A4),
@@ -888,6 +1125,28 @@ vì `kb` là nguồn duy nhất dữ liệu bị sao chép ra khỏi hệ nguồ
 Không có bản ghi nào. Xem "Tình trạng bằng chứng" ở trên: điều này có nghĩa là *không có
 rejection nào được ghi lại*, không phải bằng chứng rằng mọi finding đều được accept.
 
+### CHG-001 Option C + B4 — self-review (2026-10-01)
+
+**Tình trạng bằng chứng:** phần mở rộng CHG-001 **chưa** chạy qua `ecc:architect` (SA đang chạy như subagent,
+không có đường spawn reviewer trong phiên này). Dưới đây là **self-review** của SA đối chiếu requirements/ADR/
+lessons; CTO nên cho `ecc:architect` chạy lại trên architecture.md hiện tại trước khi khoá design (rẻ hơn suy
+đoán). Kiểm các bất biến đã giữ:
+
+| Bất biến | Giữ? | Bằng chứng trong design |
+|---|---|---|
+| Read-only tuyệt đối (9 nguồn + Jira) — 0 write tool | ✔ | Mọi tool mới `x-readonly: true`/`x-side-effects: none`; Jira thin REST (ADR-0019) không create/transition/comment; đi qua choke point `mcp_common` (ADR-0003) + adversarial test (L-001) |
+| stdio NFR-005 — gateway/orchestrator in-process | ✔ | `mcp_gateway` + grounding gate đều **in-process, không cổng mạng** (ADR-0021); Option B service-HTTP bị loại |
+| vendors=none + không egress | ✔ | reranker/embedding local offline `HF_HUB_OFFLINE=1` (ADR-0020/0010); grounding confidence **deterministic**, không LLM/API (ADR-0018 §7, D1); API reranker bị loại |
+| permission TRƯỚC grounding gate | ✔ | choke point #1 `enforce_permission` default-deny chạy trước context assembly; choke point #2 grounding gate sau (key-flow + ADR-0016/0018/0021) |
+| một choke point/guarantee (L-001) | ✔ | permission (#1) và grounding (#2) mỗi cái là **một** choke point của riêng nó; GT-5 assert không đường vòng; KHÔNG hai grounding gate (ADR-0018 §2) |
+| metric không hai nghĩa (L-002) | ✔ | `confidence` nhãn evidence-strength + `confidence_basis` + `calibration_status: uncalibrated`; ngưỡng τ TBD/eval, không bịa số |
+| migration an toàn trên dữ liệu đã có (DK2) | ✔ | ADR-0022 + migrations `0007*`: NOT VALID, CREATE INDEX CONCURRENTLY ngoài txn; gánh trước E1 |
+
+**Rủi ro tự nhận (SA, chưa qua reviewer độc lập):** (a) chất lượng Hybrid-RAG/reranker UNVERIFIED tới khi gỡ
+egress HF (R19, giữ ADR-0020 proposed); (b) permission filter là bề mặt HIGH mới (R20) — phụ thuộc adversarial
+test của QA; (c) ngưỡng confidence TBD (R chấp nhận, L-002). Không có finding nào đòi vendor/egress/service mới
+— nếu reviewer độc lập phát hiện thì ESCALATE.
+
 ### Reconcile contract_issue từ squad-backend (loops.spec=1, 2026-10-01)
 
 Nguyên tắc: thay đổi nhỏ nhất; ưu tiên đưa contract/ADR về khớp hành vi đã implement trừ khi
@@ -933,6 +1192,13 @@ constraint đều giữ nguyên) ⇒ `tools.snapshot.json` không đổi.
 | R16 | `asyncio.timeout` không huỷ được thread của SDK đồng bộ → executor bị cạn làm treo mọi tool call sau đó, **vô hình** vì các call đầu vẫn trả lỗi đẹp | Đúng cái treo mà NFR-002 cấm | `ThreadPoolExecutor` riêng `max_workers=4` + queue giới hạn, queue đầy → `upstream_unavailable` ngay (ADR-0006 A1 / 0008 A4 / 0009 A3); QA có test riêng cho case executor cạn |
 | R17 | Kafka `auto.create.topics.enable=true` ở broker biến chính **test âm của FR-007 AC-002** thành một thao tác ghi (tự tạo topic trên cluster thật) | Vi phạm NFR-001 bằng chính bộ test read-only | Chặn ở 3 chỗ: `allow.auto.create.topics=false`, không bao giờ truyền `topic=` vào metadata request, ACL deny `Create` trên Cluster + Topic (ADR-0003 A3 / ADR-0009 A1) |
 | R18 | Mất dữ liệu âm thầm ở pipeline: document fail bị checkpoint vượt qua, hoặc reconcile tombstone hàng loạt sau một crawl chết giữa đường | FR-012 AC-001 sai mà `status` vẫn có thể `success`; FR-011/FR-013 trả "không tìm thấy" cho nội dung thật | Quy tắc cursor `min(watermark doc fail) − ε` + bất kỳ doc fail ⇒ `partial` + `kb.ingest_failures` + `run --retry-failed` (ADR-0012 A2); safety valve 0.8 cho reconcile (ADR-0012 A3) |
+| **R19** (CHG-001) | **Chất lượng Hybrid-RAG + reranker UNVERIFIED** tới khi gỡ egress HF (nối S2/S3, NFR-003) | Không đo được NDCG/recall; ngưỡng τ confidence chưa chốt | ADR-0020 giữ `proposed`; RRF-only fallback có cờ minh bạch; **không đọc bất kỳ số nào là bằng chứng chất lượng** (L-002); eval chốt τ khi gỡ egress (E8) |
+| **R20** (CHG-001) | **Permission filter sai ⇒ lộ `restricted`** (bề mặt bảo mật mới HIGH, đảo C6/BR-003) | Caller không-quyền thấy evidence không nên thấy | **Một** choke point `enforce_permission` default-deny TRƯỚC assembly (ADR-0016/0021) + adversarial test (L-001); corpus team-only (ADR-0016 A1) thu hẹp phạm vi |
+| **R21** (CHG-001) | **Hai gate (permission #1, grounding #2) bị nhầm thành một / tồn tại hai grounding gate** | Guarantee phân tán — đúng anti-pattern L-001 | ADR-0018 §2 + GT-5: grounding gate **duy nhất** ở context-pack assembler; permission là gate khác mục đích chạy trước; test choke-point riêng mỗi gate |
+| **R22** (CHG-001, DK2) | **Migration mới khoá bảng trên pgvector đã có dữ liệu** (R-006/R-007) | Chặn đọc/ghi khi `CREATE INDEX`/`VALIDATE` full-table | ADR-0022: `NOT VALID`+`VALIDATE` riêng, `CREATE INDEX CONCURRENTLY` ngoài txn, `lock_timeout` ngắn; **gánh trước E1** (chặn build) |
+| **R23** (CHG-001, DK3) | Redis dev ACL (broad grants, R-013) bị tái dùng cho shared/credential domain mới | Lộ quyền | ADR-0022/env-promotion CHG-001: không tái dùng; domain mới đọc `mcp_query_ro`, ghi `mcp_ingest_rw` |
+| **R24** (CHG-001) | **Recursive CTE chậm** trên graph relationship thật ngoài dự kiến (DP4) | Traversal `find_related_knowledge` vượt deadline | Bound `depth ≤ 3` + cycle-detect + LIMIT fanout (ADR-0022); đường thoát = AGE, đổi **chỉ** DP4 (đo ở eval) |
+| **R25** (CHG-001) | **Jira flavor Cloud vs Server khác field/phân trang**; không feed xoá | Live/ingest Jira sai trên một flavor; xoá trễ | ADR-0019: flavor split trong `client.py`, cursor opaque; full-reconcile tombstone cho xoá; `@pytest.mark.live` mỗi flavor (chờ VPN/credential, nối S1) |
 
 **Spike tổng hợp (đề nghị Lead đưa vào implementation-plan như task đầu tiên của từng phase):**
 
@@ -943,3 +1209,194 @@ constraint đều giữ nguyên) ⇒ `tools.snapshot.json` không đổi.
 | S3 — Hybrid search | Sau Phase 3 | Đánh giá có cần `tsvector` + RRF |
 | S4 — Kafka client install check | Đầu Phase 2 | Chốt `confluent-kafka` hay `kafka-python`, đóng ADR-0009 — ***xong**: `confluent-kafka`, ADR-0009 accepted* |
 | S5 — Quy tắc suy ra `visibility` + quy tắc dựng `source_id` cho từng connector | Đầu Phase 3, **sau khi PO trả lời Open question 3** | Bảng quy tắc per-connector; đóng ADR-0016 (R15, ADR-0012 A5) — ***xong** (quy tắc), chờ xác nhận live T-070…T-072; ADR-0016 accepted* |
+
+
+## Appendix A — CHG-003 integration runbook: all 9 sources from the CLI, Confluence first
+
+> **Status.** This runbook belongs to CHG-003 (ADR-0023, *proposed*). It documents the CLIs that already
+> exist on disk. **Do not run it against real sources with a real token until the CEO approves egress at Gate 1**
+> (the plan-approval.md CHG-003 section records that approval). The layout has no `docs/runbooks/` home and the
+> evidence folder rejects a `4-design` stage name, so this durable runbook lives here as an appendix (SA-owned).
+>
+> It also documents a real credential step. The runbook *describes* how to make a read-only token; it never
+> contains one. Keep the token in an env var or a `*_FILE`, out of git, out of logs.
+
+### A.0 What "integrate" means — read this first
+
+The nine sources are not all the same. Four of them can be pulled into the knowledge corpus; five can only be
+reached live. The runbook keeps the two apart on purpose, because calling a live-only source "ingested" would be
+a lie.
+
+| Class | Sources | What you get | How you verify |
+|---|---|---|---|
+| **Ingestable** (connector exists) | Confluence, GitLab, OpenSearch, Jira | documents pulled into `kb.*`, embedded, searchable semantically | `mcp-<src> doctor` → `mcp-ingest run --source <src>` → `mcp-ingest status` → ask via `kb_semantic_search` |
+| **Live-only** (no corpus ingestion) | CloudWatch, Kibana, Kafka, Redis, SQS/SNS | a read-only MCP server Claude can call live; nothing is stored | `mcp-<src> doctor` → register in `claude_desktop_config.json` → `tools/list` smoke |
+
+For the five live-only sources, "integrate" means **reachable + read-only + registered** — not ingested. The
+ingest connector registry on disk holds exactly four sources (`confluence, gitlab, opensearch, jira`); the other
+five are read-only Live MCP servers (`doctor` + `serve`).
+
+Source → package map:
+
+| Source | Package | Class | CLI entry |
+|---|---|---|---|
+| Confluence | `mcp_confluence` | ingestable | `mcp-confluence` |
+| GitLab | `mcp_gitlab` | ingestable | `mcp-gitlab` |
+| OpenSearch | `mcp_opensearch` | ingestable (off by default — allow-list index) | `mcp-opensearch` |
+| Jira | `mcp_jira` | ingestable | `mcp-jira` |
+| CloudWatch | `mcp_cloudwatch` | live-only | `mcp-cloudwatch` |
+| Kibana | `mcp_kibana` | live-only | `mcp-kibana` |
+| Kafka | `mcp_kafka` | live-only | `mcp-kafka` |
+| Redis | `mcp_redis` | live-only | `mcp-redis` |
+| SQS/SNS | `mcp_sqs_sns` | live-only | `mcp-sqs-sns` |
+| pgvector (the corpus itself) | `mcp_pgvector` | query surface | `mcp-pgvector` |
+| ingest pipeline | `mcp_ingest` | the pull engine for the four ingestable sources | `mcp-ingest` |
+
+Every package has a `doctor` subcommand that is also its health/ready check: it verifies config, authenticates,
+and proves the credential is read-only. `doctor` is the first command for every source, every time.
+
+### A.1 Confluence first — the end-to-end reference (`https://tnexwm.atlassian.net`)
+
+This is the one source you take all the way through: doctor → ingest → verify. The other three ingestable
+sources follow the same shape (A.2).
+
+**Step 1 — make a read-only Atlassian API token.** Do this in the Atlassian account UI, not here:
+
+1. Sign in as a **viewer-only** account (an account with read access to the spaces you want and no edit/admin
+   rights). The `doctor` check refuses a token whose account can write, so a personal admin account will be
+   rejected on purpose.
+2. Go to **id.atlassian.com → Security → Create and manage API tokens → Create API token**. Give it a label
+   like `mcp-ingest-readonly`. Copy the token once; Atlassian shows it only once.
+3. Note the account **email** (the token authenticates as `email:token` over Basic auth) and the base URL
+   `https://tnexwm.atlassian.net`.
+
+The token is not written anywhere in this repo. It lives in your shell env or a file you point at.
+
+**Step 2 — set the env (token via a file, not inline).** Put the token in a file outside the repo and point at
+it with the `*_FILE` convention (`mcp_common.config` reads `<VAR>_FILE` when the plain var is absent):
+
+```bash
+# token in a file, mode 600, outside the repo
+printf '%s' 'PASTE_READONLY_TOKEN_HERE' > ~/.secrets/atlassian_token && chmod 600 ~/.secrets/atlassian_token
+
+export MCP_CONFLUENCE_BASE_URL="https://tnexwm.atlassian.net"
+export MCP_CONFLUENCE_EMAIL="viewer-account@your-domain"
+export MCP_CONFLUENCE_API_TOKEN_FILE="$HOME/.secrets/atlassian_token"   # never MCP_CONFLUENCE_API_TOKEN=... inline
+export MCP_CONFLUENCE_FLAVOR="cloud"
+```
+
+**Step 3 — doctor (health + read-only proof).**
+
+```bash
+uv run mcp-confluence doctor
+```
+
+Healthy output looks like this — config line, then a credential + read-only line that says `ok`:
+
+```
+config: ok (base_url=https://tnexwm.atlassian.net, flavor=cloud)
+credentials + read-only check: ok
+```
+
+If the account can write, the last line is `FAILED` and the reasons name the write operations the token is
+permitted (e.g. `account is not read-only (use a viewer-only service account); permitted write operations: ...`).
+Fix the token (use a viewer-only account), do not pass `MCP_ALLOW_UNVERIFIED_CREDENTIALS=true` for the real
+token.
+
+**Step 4 — ingest.** Pull Confluence into the corpus. Start small with `--limit` to confirm the path, then run
+for real:
+
+```bash
+# dry run first: crawl + chunk + hash, no embedding, no DB writes
+uv run mcp-ingest run --source confluence --limit 5 --dry-run
+
+# real incremental pull
+uv run mcp-ingest run --source confluence
+```
+
+Exit code `0` = success, `1` = partial (some documents failed; they are recorded in `kb.ingest_failures` and
+re-fetched with `--retry-failed`), `2` = failed, `3` = another run holds the lock.
+
+**Step 5 — status (freshness).**
+
+```bash
+uv run mcp-ingest status --json
+```
+
+Healthy output shows Confluence with a recent `last_success_at`, a document and chunk count greater than zero,
+and a small `staleness_hours`.
+
+**Step 6 — verify through semantic search.** Register `mcp-pgvector` in Claude Desktop (A.3), then ask a
+question whose answer lives in a page you just ingested. A healthy result returns `status: ok` with items that
+carry a `source_uri` pointing back at `tnexwm.atlassian.net`, and a non-empty citation. If retrieval finds
+nothing, you get `status: empty` with a warning that names the best similarity — that is the honest "not found",
+not a fabricated answer.
+
+> **Embedding caveat (NFR-003, L-002).** Until the real embedding model is downloaded (ADR-0023 §6d opens
+> `huggingface.co` for that one step; ADR-0010 pins the model, provisionally `bge-m3`), ingestion still embeds
+> with the fake provider — so semantic *quality* is not yet proven even though the content is now real. Opening
+> egress makes the measurement possible; it does not by itself prove quality. Do not read any recall number as
+> quality proof until the bake-off (spike S2) runs on the real model.
+
+### A.2 The other three ingestable sources — same shape
+
+Set each source's env (per its `MCP_<SOURCE>_*` prefix and `.env.example`), then run the same four steps.
+GitLab and Jira pull into the corpus directly; OpenSearch is **off by default** and only ingests the indices you
+allow-list in `MCP_INGEST_OPENSEARCH_INDICES` (logs have no stable document identity across ILM rollover and
+would swamp the corpus — ADR-0012 A5).
+
+```bash
+# GitLab
+uv run mcp-gitlab doctor
+uv run mcp-ingest run --source gitlab
+uv run mcp-ingest status --json
+
+# Jira (source #10, flavor Cloud/Server split — ADR-0019)
+uv run mcp-jira doctor
+uv run mcp-ingest run --source jira
+uv run mcp-ingest status --json
+
+# OpenSearch — only after setting MCP_INGEST_OPENSEARCH_INDICES to the index allow-list
+uv run mcp-opensearch doctor
+uv run mcp-ingest run --source opensearch
+uv run mcp-ingest status --json
+```
+
+Each source's egress host must be the configured source host and nothing else (ADR-0023 §6a, default-deny).
+
+### A.3 The five live-only sources — reachable + read-only + registered
+
+These are never ingested. You prove each is reachable and read-only with `doctor`, register it in Claude
+Desktop, and smoke-test that its tools list.
+
+```bash
+uv run mcp-cloudwatch doctor
+uv run mcp-kibana doctor
+uv run mcp-kafka doctor
+uv run mcp-redis doctor
+uv run mcp-sqs-sns doctor
+```
+
+Register a server in `claude_desktop_config.json` (one block per server; stdio, no port). `mcp-common
+config-emit --server <source>` prints a block you can paste:
+
+```json
+{
+  "mcpServers": {
+    "mcp-cloudwatch": { "command": "uv", "args": ["run", "mcp-cloudwatch", "serve"], "env": { "...": "..." } }
+  }
+}
+```
+
+Smoke test: restart Claude Desktop, confirm the server appears, and that its tools show up in the tool list
+(`tools/list`). "Integrated" for these five = `doctor` ok + registered + tools list, with zero write tools. No
+`mcp-ingest run` is ever issued for them.
+
+### A.4 Invariants this runbook must not break (asserted by tests — ADR-0023 §6e)
+
+- Egress is default-deny and limited to the configured source hosts (`*.atlassian.net` first) plus
+  `huggingface.co` for the one-time model download. A host not on the list is refused.
+- The 9 MCP servers + Jira stay read-only-to-source and stdio; no server opens a network port. `doctor` refuses
+  a write-capable account.
+- Ingest writes only `kb.*` under `mcp_ingest_rw`; it never writes back to any source.
+- The token lives only in env / `*_FILE`, never in git, never in logs or tool output (`scrub()` both ways).

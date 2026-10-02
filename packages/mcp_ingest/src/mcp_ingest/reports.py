@@ -25,6 +25,7 @@ __all__ = [
     "IngestStatusReport",
     "IngestStatusRow",
     "MigrationResult",
+    "MigrationStatusReport",
     "PruneReport",
     "PruneSourceRow",
     "SourcesReport",
@@ -40,7 +41,7 @@ Stage = Literal[
     "config", "connect", "crawl", "normalize", "redact", "chunk", "embed", "persist",
     "reconcile", "prune",
 ]  # fmt: skip
-SourceName = Literal["confluence", "gitlab", "opensearch"]
+SourceName = Literal["confluence", "gitlab", "opensearch", "jira"]
 
 
 class _Model(BaseModel):
@@ -54,6 +55,15 @@ class MigrationResult(_Model):
     already_applied: list[str] = Field(default_factory=list)
     current_version: str | None
     dry_run: bool = False
+
+
+class MigrationStatusReport(_Model):
+    """Read-only view of migration state for `mcp-ingest db status` (T-090)."""
+
+    current_version: str | None
+    applied: list[str] = Field(default_factory=list)
+    pending: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class IngestError(_Model):

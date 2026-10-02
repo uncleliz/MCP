@@ -1,0 +1,13 @@
+Running controlled bge-m3 download (this fetches ~2GB on first run) ...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[1] egress BEFORE opening HF (allow-list='*.atlassian.net'): {"tnexwm.atlassian.net": "ALLOWED", "huggingface.co": "DENIED"}
+[2] egress AFTER opening HF (allow-list='*.atlassian.net,huggingface.co,cdn-lfs.huggingface.co'): {"huggingface.co": "ALLOWED", "cdn-lfs.huggingface.co": "ALLOWED", "evil.example.com": "DENIED", "tnexwm.atlassian.net": "ALLOWED"}
+[3] HF_HUB_OFFLINE before download = '1'; starting controlled download of BAAI/bge-m3 (~2GB first run) via download_model() ...
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 25727.08it/s]
+/Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/embedding/local.py:77: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  actual = model.get_sentence_embedding_dimension()
+[3] download result: {"model_id": "BAAI/bge-m3", "dimensions": 1024, "offline_restored": true, "hf_hub_offline_before": "1", "hf_hub_offline_after": "1"}
+
+RESULT: OK — model BAAI/bge-m3 dim 1024 downloaded via guarded path; serving restored OFFLINE.
+JSON: {"egress_before_open": {"tnexwm.atlassian.net": "ALLOWED", "huggingface.co": "DENIED"}, "egress_after_open": {"huggingface.co": "ALLOWED", "cdn-lfs.huggingface.co": "ALLOWED", "evil.example.com": "DENIED", "tnexwm.atlassian.net": "ALLOWED"}, "download": {"model_id": "BAAI/bge-m3", "dimensions": 1024, "offline_restored": true, "hf_hub_offline_before": "1", "hf_hub_offline_after": "1"}}
+download_driver_exit=0

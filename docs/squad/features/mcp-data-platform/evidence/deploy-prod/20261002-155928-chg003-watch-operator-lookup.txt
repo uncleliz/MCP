@@ -1,0 +1,70 @@
+# CHG-003 operator lookup — end-to-end verification (read-only, mcp_query_ro)
+# host 127.0.0.1:5433 / db mcp_kb ; embedding at ingest = http loopback DeterministicFakeProvider, model fake/hashed-bow, 1024-d
+
+===== $ scripts/kb-list.sh =====
+Nguồn đã ingest trong knowledge base:
+  - confluence: 3 tài liệu, 27 chunk | model nhúng: fake/hashed-bow | cập nhật: 2026-10-02T08:46:39.321775+00:00 (0.2h) | trạng thái: success
+    nguồn gốc: https://tnexwm.atlassian.net/  (kb: confluence — 3 docs, cập nhật 2026-10-02T08:46Z (0.2h))
+
+===== $ scripts/kb-search.sh "ZNS onboarding automation" 2 =====
+
+[1] Tài liệu hướng dẫn MKT config ZNS
+    similarity: 0.5298129478041218
+    mục: 11. Một số luồng cũ: > 11.1. ZNS Automation for Onboarding
+    nguồn: https://tnexwm.atlassian.net/wiki/spaces/EA/pages/1165426720/T+i+li+u+h+ng+d+n+MKT+config+ZNS
+    <untrusted-content source="confluence" id="1165426720#23">
+    Luồng tự động gửi ZNS khi KH onboard thành công tài khoản C1.
+    Flow: ZNS Automation for Onboarding
+    => Luồng này đã bị off trên PROD: «redacted:high-entropy» Jira  nhưng trong repo zns-notification-adapter vẫn còn consume từ topic «redacted:high-entropy» nên khi gửi ZNS với provider = ‘NHANH_TNEX’ không tìm thấy template do đã set INACTIVE nên bị lỗi 500. Cần confỉm với team CASA và xóa topic này trong consumer zns-notification-adapter
+    </u …
+
+[2] Tài liệu hướng dẫn MKT config ZNS
+    similarity: 0.33333337306976696
+    mục: 7. Các service liên quan (phần này dành cho DEV)
+    nguồn: https://tnexwm.atlassian.net/wiki/spaces/EA/pages/1165426720/T+i+li+u+h+ng+d+n+MKT+config+ZNS
+    <untrusted-content source="confluence" id="1165426720#19">
+    Tên Service
+    Mô tả
+    event-loyalty
+    Service xử lý webhook từ CleverTap/Insider, nhận và forward message ZNS lên Kafka
+    zns-notification-adapter
+    Service xử lý logic validate, kiểm tra quota, gọi nhanh-connector để gửi ZNS
+    nhanh-connector
+    Service gọi API Zalo để gửi ZNS thực tế. Hỗ trợ provider ZALO_SECOND_OA và ZALO_POPPLIFE_OA
+    event-clevertap-adapter
+    Service consume postback từ Zalo và gửi report lên Insider
+    </untrusted-content>
+    Lưu ý: nội du …
+
+(Lưu ý trung thực — NFR-003: embedding hiện là 'fake/hashed-bow' (chồng lặp từ, không có ngữ nghĩa học máy). Thứ hạng là THẬT-NHƯNG-CHƯA-ĐO cho tới khi tải model bge-m3 thật và re-embed. Nội dung và trích dẫn trả về là dữ liệu EA đã ingest thật.)
+
+===== $ scripts/kb-get.sh --source-uri <EA page> (head) =====
+
+Tài liệu: Tài liệu hướng dẫn MKT config ZNS
+Nguồn: https://tnexwm.atlassian.net/wiki/spaces/EA/pages/1165426720/T+i+li+u+h+ng+d+n+MKT+config+ZNS
+source_id: 1165426720  |  document_id: 1c274560-ba52-45b7-a084-5aa35ee17da4
+không gian (space): EA  |  số chunk: 25
+cập nhật nguồn: 2026-10-01T04:27:46.908000+00:00  |  ingested: 2026-10-02T08:46:39.321775+00:00
+
+--- Nội dung ---
+  <untrusted-content source="confluence" id="1165426720">
+  Khi cấu hình Link , sử dụng định dạng sau:
+  wide760https://go.tnex.vn/<param>
+  
+  https://go.tnex.vn/: Domain OneLink cố định của TNEX trên appflyer.
+  <param>: Giá trị được truyền từ trường param trong API Call của Insider.
+  
+  Nếu trong Insider cấu hình:
+  wide760param = 4dKE/e0xxs1wq?app=/loan_service/first_loan&adj_t=1t3pm0n8&journey_id={{jbd_journey_id}}&campaign_id={{jbd_campaign_id}}&insider_Id={{uuid}}
+  Thì URL thực tế được cấu hình trên Zalo sẽ là:
+  wide760https://go.tnex.vn/4dKE/e0xxs1wq?app=/loan_service/first_loan&adj_t=1t3pm0n8&journey_id={{jbd_journey_id}}&campaign_id={{jbd_campaign_id}}&insider_Id={{uuid}}
+  
+  Truy cập: https://hq1.appsflyer.com/onelink
+  Thực hiện các bước sau:
+  Chọn OneLink Management.
+  Nhấn New Link.
+  Tại trường Media Source, nhập giá trị:
+
+===== exit codes =====
+kb-list exit=0
+kb-search exit=1

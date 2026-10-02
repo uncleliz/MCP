@@ -1,0 +1,6 @@
+=== watch sample 2 @ 2026-10-02T15:49:53+07:00 ===
+mcp-dev-postgres Up 21 hours (healthy)
+ documents |     3
+ chunks    |    27
+
+counts expected stable: documents=3 chunks=27

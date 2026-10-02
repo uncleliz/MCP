@@ -1,0 +1,294 @@
+[10/02/26 08:27:56] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'create_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'delete_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'update_item' not listed, no     server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'publish_message' not listed, no server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    WARNING  Tool 'write_key' not listed, no       server.py:494
+                             validation will be performed                       
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+                    INFO     Processing request of type            server.py:733
+                             ListPromptsRequest                                 
+PASS  snapshot == contract [confluence]  (4 tools)
+PASS  snapshot == contract [gitlab]  (11 tools)
+PASS  snapshot == contract [opensearch]  (6 tools)
+PASS  snapshot == contract [kibana]  (3 tools)
+PASS  snapshot == contract [cloudwatch]  (7 tools)
+PASS  snapshot == contract [kafka]  (5 tools)
+PASS  snapshot == contract [redis]  (4 tools)
+PASS  snapshot == contract [sqs-sns]  (6 tools)
+PASS  snapshot == contract [pgvector]  (3 tools)
+PASS  snapshot == contract [jira]  (5 tools)
+PASS  snapshot == contract [knowledge]  (8 tools)
+PASS  62 tools registered and equal to the contract's non-CLI operations  (registered=62 contract=62 diff=[])
+PASS  read-only surface [mcp_confluence]  (0 write tools, + 2 ingest ops)
+PASS  read-only surface [mcp_gitlab]  (0 write tools, + 7 ingest ops)
+PASS  read-only surface [mcp_opensearch]  (0 write tools, + 1 ingest ops)
+PASS  read-only surface [mcp_kibana]  (0 write tools)
+PASS  read-only surface [mcp_cloudwatch]  (0 write tools)
+PASS  read-only surface [mcp_kafka]  (0 write tools)
+PASS  read-only surface [mcp_redis]  (0 write tools)
+PASS  read-only surface [mcp_sqs_sns]  (0 write tools)
+PASS  read-only surface [mcp_pgvector]  (0 write tools)
+PASS  read-only surface [mcp_jira]  (0 write tools)
+PASS  read-only surface [mcp_knowledge]  (0 write tools)
+PASS  unknown write tool rejected by JSON-RPC [mcp_confluence]
+PASS  unknown write tool rejected by JSON-RPC [mcp_gitlab]
+PASS  unknown write tool rejected by JSON-RPC [mcp_opensearch]
+PASS  unknown write tool rejected by JSON-RPC [mcp_kibana]
+PASS  unknown write tool rejected by JSON-RPC [mcp_cloudwatch]
+PASS  unknown write tool rejected by JSON-RPC [mcp_kafka]
+PASS  unknown write tool rejected by JSON-RPC [mcp_redis]
+PASS  unknown write tool rejected by JSON-RPC [mcp_sqs_sns]
+PASS  unknown write tool rejected by JSON-RPC [mcp_pgvector]
+PASS  unknown write tool rejected by JSON-RPC [mcp_jira]
+PASS  unknown write tool rejected by JSON-RPC [mcp_knowledge]
+PASS  4 prompts present  (company_knowledge_lookup, dev_knowledge_lookup, incident_investigation, semantic_synthesis)
+PASS  6 mcp-ingest commands present (each with working --help)  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_confluence]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_gitlab]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_opensearch]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_kibana]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_cloudwatch]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_kafka]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_redis]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_sqs_sns]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_pgvector]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_jira]  (missing=[])
+PASS  doctor/serve/tools-dump commands [mcp_knowledge]  (missing=[])
+PASS  mcp_ingest_rw is in no `config-emit` server env
+PASS  no MCP server reads or names the ingest write credential in code
+PASS  no Claude Desktop config example carries the ingest credential
+
+50/50 checks passed

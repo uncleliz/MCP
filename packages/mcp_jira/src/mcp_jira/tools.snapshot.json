@@ -1,0 +1,162 @@
+{
+  "jira_get_issue": {
+    "description": "Lấy một issue Jira theo key (ví dụ PAY-1234). status=not_found nếu key không tồn tại hoặc không có quyền đọc.",
+    "inputSchema": {
+      "properties": {
+        "key": {
+          "description": "Key của issue, ví dụ PAY-1234.",
+          "maxLength": 64,
+          "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "jira_get_issueArguments",
+      "type": "object"
+    }
+  },
+  "jira_get_sprint": {
+    "description": "Lấy một sprint theo id (Agile API). status=not_found nếu id không tồn tại.",
+    "inputSchema": {
+      "properties": {
+        "sprint_id": {
+          "description": "Id của sprint.",
+          "minimum": 1,
+          "title": "Sprint Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sprint_id"
+      ],
+      "title": "jira_get_sprintArguments",
+      "type": "object"
+    }
+  },
+  "jira_list_board_sprints": {
+    "description": "Liệt kê sprint của một board, lọc theo state. status=empty khi board không có sprint; status=not_found khi board không tồn tại.",
+    "inputSchema": {
+      "properties": {
+        "board_id": {
+          "description": "Id của board.",
+          "minimum": 1,
+          "title": "Board Id",
+          "type": "integer"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "state": {
+          "default": "active",
+          "enum": [
+            "active",
+            "future",
+            "closed",
+            "all"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id"
+      ],
+      "title": "jira_list_board_sprintsArguments",
+      "type": "object"
+    }
+  },
+  "jira_list_projects": {
+    "description": "Liệt kê các project Jira mà caller đọc được. status=empty khi không có.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "jira_list_projectsArguments",
+      "type": "object"
+    }
+  },
+  "jira_search_issues": {
+    "description": "Tìm issue Jira bằng JQL bounded (chỉ đọc). Trả về issue kèm key, summary, status và URL dùng làm citation. status=empty khi không có issue nào khớp.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cursor opaque lấy từ meta.next_cursor của lần gọi trước.",
+          "title": "Cursor"
+        },
+        "jql": {
+          "description": "JQL bounded (chỉ đọc).",
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Jql",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Số item tối đa trả về (1..100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "jql"
+      ],
+      "title": "jira_search_issuesArguments",
+      "type": "object"
+    }
+  }
+}

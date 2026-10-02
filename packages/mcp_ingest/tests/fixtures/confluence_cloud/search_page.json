@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "id": "100100",
+      "type": "page",
+      "status": "current",
+      "title": "Payment retry policy",
+      "space": {"key": "ENG", "type": "global", "_links": {"webui": "/spaces/ENG"}},
+      "version": {"number": 4, "when": "2026-09-30T10:00:00.000Z", "by": {"displayName": "An Nguyen"}},
+      "body": {"storage": {"value": "<h1>Payment retry policy</h1><p>The payment worker retries failed transactions three times with exponential backoff before moving to the dead letter queue.</p>"}},
+      "ancestors": [],
+      "restrictions": {"read": {"restrictions": {"user": {"results": []}, "group": {"results": []}}}},
+      "_links": {"webui": "/spaces/ENG/pages/100100/Payment-retry-policy", "base": "https://tnexwm.atlassian.net/wiki"}
+    },
+    {
+      "id": "100200",
+      "type": "page",
+      "status": "current",
+      "title": "Executive compensation bands",
+      "space": {"key": "ENG", "type": "global", "_links": {"webui": "/spaces/ENG"}},
+      "version": {"number": 2, "when": "2026-09-30T11:00:00.000Z", "by": {"displayName": "CFO"}},
+      "body": {"storage": {"value": "<h1>Executive compensation</h1><p>The confidential executive salary bands for the leadership team.</p>"}},
+      "ancestors": [],
+      "restrictions": {"read": {"restrictions": {"user": {"results": [{"accountId": "cfo"}]}, "group": {"results": []}}}},
+      "_links": {"webui": "/spaces/ENG/pages/100200/Executive-compensation", "base": "https://tnexwm.atlassian.net/wiki"}
+    }
+  ],
+  "start": 0,
+  "limit": 25,
+  "size": 2,
+  "_links": {"base": "https://tnexwm.atlassian.net/wiki"}
+}

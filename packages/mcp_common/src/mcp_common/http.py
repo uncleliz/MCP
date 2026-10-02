@@ -26,6 +26,7 @@ from typing import Any
 import httpx
 
 from mcp_common.config import CommonSettings
+from mcp_common.egress import check_egress, parse_allowlist
 from mcp_common.errors import ErrorCode, NotPermittedError, ToolError, map_exception_to_tool_error
 
 __all__ = [
@@ -83,6 +84,7 @@ def build_client(
     *,
     settings: CommonSettings | None = None,
     allowlist: Sequence[TransportAllowlistEntry] = DEFAULT_TRANSPORT_ALLOWLIST,
+    enforce_egress: bool = False,
     **client_kwargs: Any,
 ) -> httpx.AsyncClient:
     """Build the one `httpx.AsyncClient` a server should ever construct.
@@ -91,6 +93,12 @@ def build_client(
     on httpx's default of "no timeout") and installs the transport read-only
     assertion as a request event hook, so it applies no matter which code path issues
     the request.
+
+    When `enforce_egress=True` (CHG-003, the ingest-pull / model-download path only), a second
+    event hook routes every request through the one `mcp_common.egress.check_egress` default-deny
+    choke point (L-001, ADR-0023 §6a): a host not on `MCP_EGRESS_ALLOWLIST` is refused before the
+    request is dialled. The 9 MCP servers leave this `False` — they keep stdio and reach only
+    their own upstream read API, so egress stays a property of `mcp-ingest`, not of the servers.
     """
     settings = settings or CommonSettings()
     timeout = httpx.Timeout(
@@ -103,9 +111,18 @@ def build_client(
     async def _assert_readonly_transport(request: httpx.Request) -> None:
         assert_transport_allowed(request.method, request.url, allowlist)
 
+    hooks: list[Any] = [_assert_readonly_transport]
+    if enforce_egress:
+        egress_allowlist = parse_allowlist(settings.egress_allowlist)
+
+        async def _assert_egress_allowed(request: httpx.Request) -> None:
+            check_egress(str(request.url), allowlist=egress_allowlist)
+
+        hooks.append(_assert_egress_allowed)
+
     event_hooks = dict(client_kwargs.pop("event_hooks", {}) or {})
     event_hooks.setdefault("request", [])
-    event_hooks["request"] = [*event_hooks["request"], _assert_readonly_transport]
+    event_hooks["request"] = [*event_hooks["request"], *hooks]
 
     return httpx.AsyncClient(timeout=timeout, event_hooks=event_hooks, **client_kwargs)
 

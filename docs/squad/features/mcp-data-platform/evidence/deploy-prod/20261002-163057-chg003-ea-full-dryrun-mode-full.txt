@@ -1,0 +1,6 @@
+=== FULL EA DRY-RUN (--mode full, no limit) ===
+dryrun_exit=124
+ docs=3
+
+ chunks=27
+

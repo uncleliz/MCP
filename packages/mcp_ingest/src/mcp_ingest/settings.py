@@ -54,6 +54,10 @@ class Settings(SourceSettingsBase):
     opensearch_text_field: str = "content"
     opensearch_title_field: str = "title"
     opensearch_timestamp_field: str = "@timestamp"
+    # -- Jira (ADR-0019): project keys to crawl + the subset declared team-wide (default-deny) --
+    jira_projects: str = ""  # project keys to crawl (e.g. "PAY,CORE"); empty = connector off
+    jira_team_projects: str = ""  # subset of jira_projects whose issues count as team content
+    jira_page_size: int = 100
 
     def migration_dsn(self) -> str:
         chosen = self.admin_dsn or self.pgvector_dsn

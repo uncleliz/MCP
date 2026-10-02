@@ -36,6 +36,7 @@ SOURCE_LABELS: dict[SourceType, str] = {
     SourceType.SQS: "SQS",
     SourceType.SNS: "SNS",
     SourceType.PGVECTOR: "cơ sở dữ liệu ngữ nghĩa (pgvector)",
+    SourceType.JIRA: "Jira",
 }
 
 # Item dict keys treated as a heading when rendering `[n] <heading>` (first match wins).

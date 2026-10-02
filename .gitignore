@@ -22,6 +22,18 @@ venv/
 *.env
 !.env.example
 
+# Ingest source credentials (real secrets) — never commit
+# Token files and the credentials directory; *.example templates ARE committed
+.token-key
+*.token
+*.token-key
+credentials/*
+secrets/*
+!credentials/*.example
+!credentials/.*.example
+!secrets/*.example
+!secrets/.*.example
+
 # OS
 .DS_Store
 
@@ -40,3 +52,9 @@ infra/**/data/
 
 # Squad install backups (R-027)
 .claude/squad/backup/
+
+# Squad Telegram bridge runtime state (session/offset/log — never commit; may carry session secrets)
+.claude/squad/telegram.session
+.claude/squad/telegram.offset
+.claude/squad/telegram-bridge.log
+.claude/squad/notify.local.env

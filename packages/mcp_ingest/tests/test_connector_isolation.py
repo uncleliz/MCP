@@ -16,8 +16,10 @@ from mcp_ingest.connectors import registry
 from mcp_ingest.connectors.base import AsyncBridge, ConnectorStatus, SourceConnector
 from mcp_ingest.connectors.confluence import ConfluenceConnector
 from mcp_ingest.connectors.gitlab import GitLabConnector
+from mcp_ingest.connectors.jira import JiraConnector
 from mcp_ingest.connectors.opensearch import OpenSearchConnector
 from mcp_ingest.settings import Settings
+from mcp_jira.client import ALLOWED_OPERATIONS as JIRA_OPS
 from mcp_opensearch.client import ALLOWED_OPERATIONS as OPENSEARCH_OPS
 
 import mcp_ingest
@@ -66,12 +68,12 @@ def test_the_isolation_check_would_catch_a_violation(tmp_path: Path) -> None:
     assert "mcp_gitlab.read_api" in found and "mcp_confluence.read_api" in found
 
 
-def test_FR_012_AC_001_the_registry_lists_the_three_v1_connectors() -> None:
-    assert registry.source_names() == ["confluence", "gitlab", "opensearch"]
+def test_FR_012_AC_001_the_registry_lists_the_v1_connectors_plus_jira() -> None:
+    assert registry.source_names() == ["confluence", "gitlab", "opensearch", "jira"]
     specs = registry.REGISTRY()
     assert {n: s.class_name for n, s in specs.items()} == {
         "confluence": "ConfluenceConnector", "gitlab": "GitLabConnector",
-        "opensearch": "OpenSearchConnector",
+        "opensearch": "OpenSearchConnector", "jira": "JiraConnector",
     }  # fmt: skip
     described = {spec.source_type: status for spec, status in registry.describe_all(Settings())}
     assert all(isinstance(status, ConnectorStatus) for status in described.values())
@@ -79,7 +81,7 @@ def test_FR_012_AC_001_the_registry_lists_the_three_v1_connectors() -> None:
 
 def test_a_connector_satisfies_the_protocol() -> None:
     assert isinstance(FakeConnector(), SourceConnector)
-    for cls in (ConfluenceConnector, GitLabConnector, OpenSearchConnector):
+    for cls in (ConfluenceConnector, GitLabConnector, OpenSearchConnector, JiraConnector):
         for member in (
             "source_type",
             "name",
@@ -98,6 +100,7 @@ def test_a_connector_satisfies_the_protocol() -> None:
         (ConfluenceConnector, CONFLUENCE_OPS),
         (GitLabConnector, GITLAB_OPS),
         (OpenSearchConnector, OPENSEARCH_OPS),
+        (JiraConnector, JIRA_OPS),
     ],
 )
 def test_every_client_operation_a_connector_calls_is_in_the_source_read_only_allowlist(

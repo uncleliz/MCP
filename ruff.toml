@@ -21,3 +21,6 @@ ignore = []
 [lint.per-file-ignores]
 # Dev-only scripts are allowed to print to stdout (they are not MCP servers).
 "scripts/*" = ["T20"]
+# Evidence/demo scripts captured under a feature's evidence/ folder are one-off operator scripts
+# (go-live demo seed/query, deploy proof), not MCP servers — they print to stdout by design.
+"docs/**/evidence/**" = ["T20", "E702"]

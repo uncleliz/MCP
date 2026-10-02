@@ -1,0 +1,35 @@
+# chg003-watch · NFR-003 re-embed with REAL model
+# date: 2026-10-02T15:03:25Z  HF_HUB_OFFLINE=1
+# provider=local model=BAAI/bge-m3 dim=1024 device=cpu  target=kb.chunks (confluence, 27 chunks)
+# DSN role = mcp_ingest_rw (write path; ADR-0003 A1 — never an MCP server credential)
+$ uv run mcp-ingest reembed --model BAAI/bge-m3 --source confluence --json
+----
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 37946.52it/s]
+/Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/embedding/local.py:77: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  actual = model.get_sentence_embedding_dimension()
+{
+  "mode": "reembed",
+  "started_at": "2026-10-02T15:03:25.923207Z",
+  "finished_at": "2026-10-02T15:03:45.487700Z",
+  "status": "success",
+  "exit_code": 0,
+  "embedding_model": "BAAI/bge-m3",
+  "dry_run": false,
+  "sources": [
+    {
+      "source_type": "confluence",
+      "run_id": "f277f8a7-d5ac-4853-8266-41dc1a14895e",
+      "status": "success",
+      "documents_seen": 3,
+      "documents_upserted": 0,
+      "documents_skipped": 0,
+      "documents_failed": 0,
+      "documents_tombstoned": null,
+      "chunks_written": 27,
+      "duration_s": 19.554,
+      "cursor_advanced": false,
+      "errors": []
+    }
+  ]
+}
+exit_code=0

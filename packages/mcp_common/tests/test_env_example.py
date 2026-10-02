@@ -74,3 +74,30 @@ def test_env_example_has_no_real_secret() -> None:
 def test_repo_has_no_committed_dotenv_file() -> None:
     # Only `.env.example` may exist; a real `.env` must never be committed.
     assert not (REPO_ROOT / ".env").exists()
+
+
+# -- CHG-003 (T-121, FR-025 / FR-024): Confluence Cloud real-ingest placeholders ---------------
+
+
+def test_env_example_documents_egress_allowlist_default_deny() -> None:
+    # The egress allow-list must be present and default to EMPTY (default-deny, ADR-0023 §6a).
+    content = ENV_EXAMPLE.read_text(encoding="utf-8")
+    assert "MCP_EGRESS_ALLOWLIST" in content
+    # The configured default is empty (deny-all): the bare assignment with no value.
+    assert re.search(r"(?m)^MCP_EGRESS_ALLOWLIST=\s*$", content)
+    # The example comment shows the atlassian + huggingface pattern.
+    assert "*.atlassian.net" in content
+
+
+def test_env_example_confluence_token_is_file_based_and_clearly_fake() -> None:
+    content = ENV_EXAMPLE.read_text(encoding="utf-8")
+    # The *_FILE convention is documented for the read-only token (preferred, never committed).
+    assert "MCP_CONFLUENCE_API_TOKEN_FILE" in content
+    # The read-only + never-committed guidance is spelled out.
+    lowered = content.lower()
+    assert "read-only" in lowered
+    assert "never committed" in lowered
+    # The inline token value is an obvious placeholder, not a real-looking credential.
+    match = re.search(r"(?m)^MCP_CONFLUENCE_API_TOKEN=(\S+)\s*$", content)
+    assert match is not None
+    assert match.group(1).startswith("changeme")

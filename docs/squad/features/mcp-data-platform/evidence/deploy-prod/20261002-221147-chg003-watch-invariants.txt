@@ -1,0 +1,18 @@
+# chg003-watch · invariant checks after re-embed (date: 2026-10-02T15:11:47Z)
+========================================================================
+## (1) egress default-deny: empty allowlist denies ALL hosts; serving uses no egress
+allowlist(default serving) = [] => empty = deny-all
+  host_allowed('huggingface.co') = False  (default-deny => all False)
+  host_allowed('cdn-lfs.huggingface.co') = False  (default-deny => all False)
+  host_allowed('tnexwm.atlassian.net') = False  (default-deny => all False)
+  host_allowed('evil.example.com') = False  (default-deny => all False)
+allowlist(ingest '*.atlassian.net'):
+  host_allowed('tnexwm.atlassian.net') = True
+  host_allowed('huggingface.co') = False
+  host_allowed('evil.example.com') = False
+
+## (2) HF offline for serving: HF_HUB_OFFLINE=1 ; mcp-pgvector embeds query with local cached model, no network
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 51597.43it/s]
+/Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/embedding/local.py:77: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  actual = model.get_sentence_embedding_dimension()
+embed_query ok: dim= 1024 model= BAAI/bge-m3 HF_HUB_OFFLINE=1, outbound sockets during serve = 0

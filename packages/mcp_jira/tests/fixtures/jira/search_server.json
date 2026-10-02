@@ -1,0 +1,19 @@
+{
+  "startAt": 0,
+  "maxResults": 20,
+  "total": 2,
+  "issues": [
+    {
+      "key": "PAY-1234",
+      "fields": {
+        "summary": "Retry worker fails after 3 attempts",
+        "status": {"name": "In Progress"},
+        "issuetype": {"name": "Bug"},
+        "assignee": {"displayName": "an.nguyen"},
+        "priority": {"name": "High"},
+        "updated": "2026-09-30T10:00:00.000+0000",
+        "project": {"key": "PAY"}
+      }
+    }
+  ]
+}

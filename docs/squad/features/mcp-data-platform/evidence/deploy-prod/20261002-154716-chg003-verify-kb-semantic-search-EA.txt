@@ -1,0 +1,119 @@
+--- JSON-RPC: tools/list (read-only surface) ---
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "tools": [
+      "kb_get_document",
+      "kb_list_sources",
+      "kb_semantic_search"
+    ]
+  }
+}
+
+--- JSON-RPC: tools/call kb_list_sources {} ---
+{
+  "status": "ok",
+  "items": [
+    {
+      "source_type": "confluence",
+      "document_count": 3,
+      "chunk_count": 27,
+      "last_ingested_at": "2026-10-02T08:46:39.321775+00:00",
+      "last_success_at": "2026-10-02T08:46:39.358397+00:00",
+      "staleness_hours": 0.0,
+      "last_run_status": "success",
+      "embedding_model": "fake/hashed-bow",
+      "citation_ref": 0
+    }
+  ],
+  "citations": [
+    {
+      "source_type": "confluence",
+      "label": "kb: confluence — 3 docs, cập nhật 2026-10-02T08:46Z (0.0h)",
+      "uri": "https://tnexwm.atlassian.net/",
+      "locator": {
+        "source_type": "confluence"
+      },
+      "retrieved_at": "2026-10-02T08:47:17.532608Z"
+    }
+  ],
+  "meta": {
+    "source": "pgvector",
+    "returned": 1,
+    "has_more": false,
+    "next_cursor": null,
+    "truncated": false,
+    "elapsed_ms": 15,
+    "as_of": "2026-10-02T08:47:17.532881Z",
+    "query_echo": {},
+    "warnings": [],
+    "redactions": 0,
+    "data_freshness": {
+      "last_ingested_at": "2026-10-02T08:46:39.358397Z",
+      "staleness_hours": 0.0,
+      "embedding_model": "fake/hashed-bow"
+    }
+  }
+}
+
+--- JSON-RPC: tools/call kb_semantic_search {query: 'hướng dẫn MKT config ZNS', top_k: 5} ---
+{
+  "status": "empty",
+  "items": [],
+  "citations": [],
+  "meta": {
+    "source": "pgvector",
+    "returned": 0,
+    "has_more": false,
+    "next_cursor": null,
+    "truncated": false,
+    "elapsed_ms": 6,
+    "as_of": "2026-10-02T08:47:17.541686Z",
+    "query_echo": {
+      "top_k": 5,
+      "min_similarity": 0.3
+    },
+    "warnings": [
+      "best_similarity=0.21 < min_similarity=0.30 — không có dữ liệu index phù hợp"
+    ],
+    "redactions": 0,
+    "data_freshness": {
+      "last_ingested_at": "2026-10-02T08:46:39.358397Z",
+      "staleness_hours": 0.0,
+      "embedding_model": "fake/hashed-bow"
+    }
+  }
+}
+
+--- JSON-RPC: tools/call kb_semantic_search {query: 'marketing configuration guide', top_k: 5} ---
+{
+  "status": "empty",
+  "items": [],
+  "citations": [],
+  "meta": {
+    "source": "pgvector",
+    "returned": 0,
+    "has_more": false,
+    "next_cursor": null,
+    "truncated": false,
+    "elapsed_ms": 3,
+    "as_of": "2026-10-02T08:47:17.547785Z",
+    "query_echo": {
+      "top_k": 5,
+      "min_similarity": 0.3
+    },
+    "warnings": [
+      "best_similarity=0.00 < min_similarity=0.30 — không có dữ liệu index phù hợp"
+    ],
+    "redactions": 0,
+    "data_freshness": {
+      "last_ingested_at": "2026-10-02T08:46:39.358397Z",
+      "staleness_hours": 0.0,
+      "embedding_model": "fake/hashed-bow"
+    }
+  }
+}
+
+=== VERDICT ===
+FAIL: no EA citation (tnexwm.atlassian.net /spaces/EA/) returned.
+verify_exit=1

@@ -1,0 +1,90 @@
+=== DB counts BEFORE real pull ===
+ confluence  |     2
+
+ documents |     2
+ chunks    |     2
+
+=== REAL PULL (space=EA, limit 20) ===
+--- stderr tail ---
+{"ts": "2026-10-02T08:46:39.361650+00:00", "level": "INFO", "message": "source confluence: success", "server": "ingest", "tool": null, "request_id": null, "duration_ms": 3150, "status": "success", "error_code": null, "upstream_status": null, "upstream_host": null, "items_returned": 1, "truncated": null, "redactions": null}
+
+$ mcp-ingest run --source confluence --limit 20 --json  (space=EA, real tenant, loopback embed)
+{
+  "mode": "incremental",
+  "started_at": "2026-10-02T08:46:35.990952Z",
+  "finished_at": "2026-10-02T08:46:39.361171Z",
+  "status": "success",
+  "exit_code": 0,
+  "embedding_model": "fake/hashed-bow",
+  "dry_run": false,
+  "sources": [
+    {
+      "source_type": "confluence",
+      "run_id": "f1d5f679-c019-4bb3-9026-7205739485f5",
+      "status": "success",
+      "documents_seen": 1,
+      "documents_upserted": 1,
+      "documents_skipped": 0,
+      "documents_failed": 0,
+      "documents_tombstoned": null,
+      "chunks_written": 25,
+      "duration_s": 3.15,
+      "cursor_advanced": true,
+      "errors": []
+    }
+  ]
+}
+exit=0
+=== STATUS --json ===
+{
+  "as_of": "2026-10-02T08:46:40.297711Z",
+  "sources": [
+    {
+      "source_type": "confluence",
+      "last_success_at": "2026-10-02T08:46:39.358397Z",
+      "staleness_hours": 0.0,
+      "document_count": 3,
+      "chunk_count": 27,
+      "last_run_status": "success",
+      "last_run_at": "2026-10-02T08:46:39.359119Z"
+    },
+    {
+      "source_type": "gitlab",
+      "last_success_at": null,
+      "staleness_hours": null,
+      "document_count": 0,
+      "chunk_count": 0,
+      "last_run_status": null,
+      "last_run_at": null
+    },
+    {
+      "source_type": "jira",
+      "last_success_at": null,
+      "staleness_hours": null,
+      "document_count": 0,
+      "chunk_count": 0,
+      "last_run_status": null,
+      "last_run_at": null
+    },
+    {
+      "source_type": "opensearch",
+      "last_success_at": null,
+      "staleness_hours": null,
+      "document_count": 0,
+      "chunk_count": 0,
+      "last_run_status": null,
+      "last_run_at": null
+    }
+  ]
+}
+=== DB counts AFTER real pull ===
+ confluence  |     3
+
+ documents |     3
+ chunks    |    27
+
+=== sample EA doc (source_uri / title) ===
+ https://tnexwm.atlassian.net/wiki/spaces/EA/pages/1165426720/T+i+li+u+h+ng+d+n+MKT+config+ | Tài liệu hướng dẫn MKT config ZNS
+
+=== token-leak check ===
+OK: token not present in evidence file

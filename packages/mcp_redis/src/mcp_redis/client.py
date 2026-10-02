@@ -27,6 +27,7 @@ import redis.asyncio as aioredis
 from mcp_common.config import CommonSettings
 from mcp_common.errors import ErrorCode, ToolError, map_exception_to_tool_error
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 
 from mcp_redis.settings import Settings
 
@@ -200,6 +201,12 @@ class RedisClient:
         self._common = common or CommonSettings()
         self._host = httpx.URL(settings.url.replace("redis", "http", 1)).host
         self._deny = [glob.lower() for glob in settings.deny_globs]
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured password for
+        # value-based scrubbing at the single client-construction seam, so an opaque
+        # credential is redacted from any outbound error/result/log. Additive; no-op when
+        # no password is configured.
+        if settings.password is not None:
+            register_secret(settings.password.get_secret_value())
         self._factory = redis_factory or self._default_factory
         self._connections: dict[int, Any] = {}
 

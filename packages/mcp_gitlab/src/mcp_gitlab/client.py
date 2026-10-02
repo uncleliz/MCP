@@ -31,6 +31,7 @@ from mcp_common.errors import (
 )
 from mcp_common.http import build_client, request_with_retry
 from mcp_common.readonly import enforce
+from mcp_common.redact import register_secret
 
 from mcp_gitlab.settings import Settings
 
@@ -127,13 +128,21 @@ class GitLabClient:
         *,
         common: CommonSettings | None = None,
         http: httpx.AsyncClient | None = None,
+        enforce_egress: bool = False,
     ) -> None:
         self._settings = settings
         self._common = common or CommonSettings()
         self._host = httpx.URL(settings.base_url).host
         self._deny = [glob.lower() for glob in settings.deny_globs]
+        # E-mcp-data-platform-009 (FR-025/NFR-014): register the configured PAT for
+        # value-based scrubbing at the single client-construction seam, so an opaque
+        # GitLab token the shape/label/entropy passes cannot recognise is still redacted
+        # from any outbound error/result/log. Covers the live server and the mcp_ingest
+        # GitLab connector (both build this client). Additive.
+        register_secret(settings.private_token.get_secret_value())
         self.http = http or build_client(
             settings=self._common,
+            enforce_egress=enforce_egress,
             headers={
                 "PRIVATE-TOKEN": settings.private_token.get_secret_value(),
                 "Accept": "application/json",

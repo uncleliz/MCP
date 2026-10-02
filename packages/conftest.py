@@ -25,6 +25,23 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _isolate_registered_secrets() -> Iterator[None]:
+    """Keep the value-based secret registry (`mcp_common.redact`) isolated per test.
+
+    E-mcp-data-platform-009 wires `register_secret()`/`register_dsn_secret()` into every
+    source's client-construction seam, so simply constructing a client in a test now adds the
+    configured credential to the process-global `_REGISTERED_SECRETS`. Clearing it before and
+    after each test stops one test's registered secret from scrubbing another test's output
+    (and protects `test_token_never_leaks`'s own assertions). Idempotent and cheap.
+    """
+    from mcp_common.redact import clear_registered_secrets
+
+    clear_registered_secrets()
+    yield
+    clear_registered_secrets()
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if os.environ.get("MCP_LIVE_TESTS") == "1":
         return
@@ -152,6 +169,116 @@ def pg_database_factory(pg_server: PgServer) -> Iterator[Callable[..., str]]:
 
     yield factory
     with psycopg.connect(pg_server.dsn(), autocommit=True) as conn:
+        for name in created:
+            for _ in range(5):
+                try:
+                    conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+                    break
+                except psycopg.Error:  # pragma: no cover - transient
+                    time.sleep(0.2)
+
+
+# -- Docker pgvector (the real go-live store engine) for CHG-001 DK2 migration-locking tests ---
+#
+# The distro-binary cluster above cannot build an HNSW index unless pgvector is installed next to
+# those binaries (it usually is not on a dev laptop). The dev compose stack already runs
+# `pgvector/pgvector:pg16`, which is the exact engine the kb store went live on, so the CHG-001
+# migration-locking tests (T-087/T-088) provision a throw-away *database* inside that container
+# and never touch the live `mcp_kb` database. Skipped, with a reason, when Docker or the container
+# is not available — so `make ci` stays green on a machine without Docker.
+
+_DOCKER_PG_CONTAINER = os.environ.get("MCP_TEST_PG_CONTAINER", "mcp-dev-postgres")
+_DOCKER_PG_USER = os.environ.get("MCP_TEST_PG_USER", "mcp_admin")
+
+
+@dataclass(frozen=True)
+class DockerPg:
+    container: str
+    user: str
+    host_port: int
+
+    def dsn(self, database: str) -> str:
+        return f"postgresql://{self.user}@127.0.0.1:{self.host_port}/{database}"
+
+
+def _docker_available() -> bool:
+    return shutil.which("docker") is not None
+
+
+def _container_running(name: str) -> bool:
+    try:
+        out = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", name],
+            capture_output=True, text=True, timeout=15,
+        )  # fmt: skip
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - env
+        return False
+    return out.returncode == 0 and out.stdout.strip() == "true"
+
+
+def _published_port(name: str) -> int | None:
+    try:
+        out = subprocess.run(
+            ["docker", "port", name, "5432/tcp"],
+            capture_output=True, text=True, timeout=15,
+        )  # fmt: skip
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - env
+        return None
+    if out.returncode != 0 or not out.stdout.strip():
+        return None
+    # e.g. "0.0.0.0:5433\n[::]:5433"
+    first = out.stdout.strip().splitlines()[0]
+    try:
+        return int(first.rsplit(":", 1)[1])
+    except (IndexError, ValueError):  # pragma: no cover - env
+        return None
+
+
+@pytest.fixture(scope="session")
+def docker_pgvector() -> DockerPg:
+    """The running compose pgvector container (the real kb store engine), or skip."""
+    if not _docker_available():
+        pytest.skip("docker not available; CHG-001 migration-locking tests need pgvector")
+    if not _container_running(_DOCKER_PG_CONTAINER):
+        pytest.skip(f"container {_DOCKER_PG_CONTAINER} is not running (docker compose up -d)")
+    port = _published_port(_DOCKER_PG_CONTAINER)
+    if port is None:
+        pytest.skip(f"container {_DOCKER_PG_CONTAINER} does not publish 5432")
+    import psycopg
+
+    server = DockerPg(container=_DOCKER_PG_CONTAINER, user=_DOCKER_PG_USER, host_port=port)
+    try:  # confirm reachable + pgvector present, else skip (never fail)
+        with psycopg.connect(server.dsn("postgres"), connect_timeout=5, autocommit=True) as conn:
+            row = conn.execute(
+                "SELECT count(*) FROM pg_available_extensions WHERE name = 'vector'"
+            ).fetchone()
+            has_vector = bool(row and row[0])
+    except psycopg.Error as exc:  # pragma: no cover - env
+        pytest.skip(f"cannot reach {_DOCKER_PG_CONTAINER}: {type(exc).__name__}")
+    if not has_vector:  # pragma: no cover - env
+        pytest.skip("pgvector not available in the container")
+    return server
+
+
+@pytest.fixture
+def docker_pg_factory(docker_pgvector: DockerPg) -> Iterator[Callable[[], str]]:
+    """`factory() -> admin DSN` of a fresh throw-away database in the pgvector container.
+
+    Each database is dropped on teardown; the live `mcp_kb` database is never touched.
+    """
+    import psycopg
+
+    created: list[str] = []
+
+    def factory() -> str:
+        name = f"t_{uuid.uuid4().hex[:12]}"
+        with psycopg.connect(docker_pgvector.dsn("postgres"), autocommit=True) as conn:
+            conn.execute(f'CREATE DATABASE "{name}"')
+        created.append(name)
+        return docker_pgvector.dsn(name)
+
+    yield factory
+    with psycopg.connect(docker_pgvector.dsn("postgres"), autocommit=True) as conn:
         for name in created:
             for _ in range(5):
                 try:

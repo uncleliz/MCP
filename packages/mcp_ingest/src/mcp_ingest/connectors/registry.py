@@ -27,7 +27,7 @@ class ConnectorSpec:
 
 
 def _specs() -> dict[str, ConnectorSpec]:
-    from mcp_ingest.connectors import confluence, gitlab, opensearch
+    from mcp_ingest.connectors import confluence, gitlab, jira, opensearch
 
     return {
         "confluence": ConnectorSpec(
@@ -37,6 +37,7 @@ def _specs() -> dict[str, ConnectorSpec]:
         "opensearch": ConnectorSpec(
             "opensearch", "OpenSearchConnector", opensearch.status, opensearch.build
         ),
+        "jira": ConnectorSpec("jira", "JiraConnector", jira.status, jira.build),
     }
 
 

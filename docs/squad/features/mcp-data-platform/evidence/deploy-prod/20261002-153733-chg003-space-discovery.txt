@@ -1,0 +1,110 @@
+=== CHG-003 Step 2 — READ-ONLY Confluence space discovery ===
+timestamp: 2026-10-02T15:37:33+07:00
+tenant: https://tnexwm.atlassian.net/wiki  flavor: cloud
+egress_allowlist: *.atlassian.net  (enforce_egress=True in the client)
+method: GET /rest/api/space via confluence_list_spaces (read-only; NO ingest, NO write)
+=== discovered spaces (key | name | type) ===
+spaces_discovered: 100
+key | name | type
+--- | ---- | ----
+AS | Accounting Space | global
+C2 | Core 2 | 
+CAB | CAB | global
+CASAMOA | CASA_MOA | global
+CHM | Change Management | global
+CL | Cash Loan | global
+CRL | Lending 2 - Credit Line | global
+CS | Cyber Security | global
+Compliance | Compliance | 
+CreditLine | Credit_Line | global
+DC | Digital Collection | global
+DD | Direct Channel | global
+DEMO | demo | global
+DMS | Data Management Squad | global
+DT | Data Team | global
+EA | ENGAGEMENT & ACCQUISITION | global
+FCO | FCCOM IT Operations | global
+FM | Fraud Management | global
+FT | FCCOM Tech | global
+IH | Innovation Hub | global
+LBM | LOAN BUSINESS MANAGEMENT | global
+LEO | LEO | 
+LM | Leadership & Management | 
+LOAN | LOAN BUSINESS MGT | global
+Legal | Legal | 
+MCL | Merchant Lending | global
+ML | Merchant Lending | 
+OE | Operational Excellence | 
+PAYMENT | PAYMENT | global
+PL | Purpose Loan | global
+PM | Project Management | global
+PMO | PMO | global
+PVH | Phòng vận hành | global
+Partnershi | Partnership | global
+Platform | Platform | global
+Productreq | Product_requirement | global
+QD | QA Department | global
+~61665c5d72f6970069cea9eb | Hiếu Nguyễn | personal
+~620c9cf1a715c60069137e9f | Nguyễn Thị Thu Hạ | personal
+~62134dbe9cd4a70071dd3cd4 | Minh LV | personal
+~62399422b75ca80070559b68 | Nguyen Dinh Luong | personal
+~6335040261dbef2805c000f1 | Hạnh Phạm | personal
+~633505ed61dbef2805c00117 | CuongNV20 | personal
+~633505ee61dbef2805c00118 | diepnv2 | personal
+~633505ef07a27ebeff16d070 | Nguyễn Thúy Quỳnh | personal
+~633505ef234d44d406d2b5e5 | nguyen thi hue | personal
+~633505f097148a8301fd07bf | Ninh Thị Thùy | personal
+~633ce86cf568615bdc80410f | Nguyen Hai Trieu | personal
+~633d366c8b75455be4588619 | NguyenBien | personal
+~633d366c8b75455be458861b | dienpt2 | personal
+~633d366d88ed2ebef97e3774 | Nguyen Van Hieu | personal
+~633d366e88ed2ebef97e3776 | Nhung Tran Thi | personal
+~633d366f8b75455be4588620 | HoangSon | personal
+~633d38482eaaa5dcfa16c601 | hieutm2 | personal
+~633d3849140ba0bf651db3e9 | Huy Van Nguyen | personal
+~633d384914c6b4b2210fc911 | Mạnh | personal
+~633d384a97148a8301feabda | Do Ha Phuong | personal
+~633d384afedc6169aed97e68 | Đỗ Ngọc | personal
+~6344f4912edf195c40aa3cde | dinvd2 | personal
+~6344f492188e7132154f71bf | Ngan Ngan | personal
+~6344f55953df3c01231f9231 | binhbt2 | personal
+~6344f55a3f4224a46db22052 | longdv2 | personal
+~6397db0776fb74a951421fed | Quynh Ngo | personal
+~6399b0ba2c2bbfc5f9dd3578 | Mai Thúy Vân | personal
+~63eb450e2661cde22336cf73 | Pham Ngoc Thanh Mai | personal
+~63fdb707f00d095406f23a66 | HienHV1 | personal
+~63ff12664d5e4b44e231882d | LÊ HUY KHÔI | personal
+~7120200149b52a307f4775a2d1587805345371 | Nguyen Viet Chung | personal
+~7120200fa72476c80b41d2b9eec87e90f21547 | Nguyễn Hương Giang | personal
+~7120201c1f920fcfed432c84c6614493877ea4 | HOANG VIET PHUONG | personal
+~7120201cfb9bab9219422288401e0219827b99 | Nhungtt7 | personal
+~712020208052d517fb43b6a20dcd20a8c097bc | Nguyễn Hoàng Yến | personal
+~712020303477c2ce094162bed8dc2a1ca84bd9 | phund3 | personal
+~7120203af8ae22221d45e9b0b5d97c9b683d54 | Đạt Phùng | personal
+~7120203f23efeb5c7b4400a7c3e12d230510cd | Nguyen Trung Kien | personal
+~71202046f98cf3d0214657844d0b26ef6498af | Quynhanh Dang Nguyen | personal
+~7120205595937c8e7a4fd69d69d7215e866499 | Phạm Thế Duyệt | personal
+~712020595633f88af449c3b18d27c40a6d67fd | Bùi Thị Thu Hương | personal
+~71202060b2ffb26e274f70936c4d7766bc7691 | Loc Nguyen | personal
+~7120206917958ca7b746588783abd44fa98c71 | ngannth5 | personal
+~7120206de9097d61064c729f58081f090925d2 | Bach Nguyen Van (TNEX FINANCE-PTCN) | personal
+~712020702fe1602984405f9d2e279698d3deab | DANG THU HONG | personal
+~7120207c5009e6d1cf40de88b2de28dd54dfbb | GiangNT13 | personal
+~71202085e6612e829148dd9405014d562430ba | Phan Thành Vinh | personal
+~7120208a2b11b48dda4224a64f64509a6b47d7 | Nguyen Trung Kien | personal
+~712020998b7945c76d4d7ba12ba752a029f0b0 | Ngo Hong Viet (Mr.) | personal
+~712020a18035f12c2e4437ac5dfb2746a847e3 | Lê Hồng Liên | personal
+~712020a2780f874add4c128216930897fdbd54 | Nguyễn Thị Ngọc Diệp | personal
+~712020a339b4883b284f3cb4aa679f55a5f83b | Phuong Dang | personal
+~712020a50ee6ff163747a79e92cc44c32b016b | hungqv4 | personal
+~712020a54dfc56a1c5498eb7312d5ee5740e60 | Nguyen Thi Dung | personal
+~712020a552102209504d6fb45c46108e1efc53 | Hà My | personal
+~712020a57c9c7a7faa4cf58399943375a0989b | Phạm Hồng Thắng | personal
+~712020bd0738767b854d14a03e196c1643f434 | Ban Kiểm Soát | personal
+~712020c1d9ba6eb37b4fc6b92d6c43b5545109 | Đặng Thị Thu | personal
+~712020c4e3a8f90b5046158dbf7cde7206bb25 | Nhâm Phương Thảo | personal
+~712020c8052803fd5f4353bde9161cfb370ada | Nguyen Thuy Nhung | personal
+~712020d0f6a2cfcd334aaea7819d9b1db87374 | Nguyen Van Quyen | personal
+~712020e19a34bd628c4bdc9831622d92bb19e1 | hoalt13 | personal
+~712020ffb533a7746440fd97dc8c7a3fcdcc3a | Giang Nguyen Thi Huong | personal
+discovery exit_code: 0

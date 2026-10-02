@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.6, pytest-9.1.1, pluggy-1.6.0 -- /Users/manh.le/Desktop/MCP/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/manh.le/Desktop/MCP
+configfile: pyproject.toml
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.15.1, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 3 items
+
+packages/mcp_knowledge/tests/test_permission_real_ingested_chg003.py::test_TC124_restricted_real_ingested_doc_is_blocked_at_ingest PASSED [ 33%]
+packages/mcp_knowledge/tests/test_permission_real_ingested_chg003.py::test_TC124_ungranted_caller_sees_no_real_ingested_content_at_the_chokepoint PASSED [ 66%]
+packages/mcp_knowledge/tests/test_permission_real_ingested_chg003.py::test_TC124_restricted_content_never_a_candidate_pack_or_citation PASSED [100%]
+
+============================== 3 passed in 1.07s ===============================

@@ -1,0 +1,13 @@
+=== scope (non-secret) ===
+base_url=https://tnexwm.atlassian.net/wiki
+flavor=cloud
+spaces=EA
+egress_allowlist=*.atlassian.net
+live_egress=true
+allow_unverified=true
+token_len=192  (value never printed)
+=== dry-run ===
+error: config error: [ingest] Missing or invalid required environment variable(s): MCP_INGEST_PGVECTOR_DSN
+exit=2
+=== token-leak check ===
+OK: token not present in evidence file

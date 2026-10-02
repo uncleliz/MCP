@@ -1,0 +1,51 @@
+scope(non-secret): base=https://tnexwm.atlassian.net/wiki flavor=cloud spaces=EA allow=*.atlassian.net live=true token_len=192
+=== FULL EA DRY-RUN (no limit, no write, no embed) ===
+--- stderr tail ---
+                                  │
+│ /Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/cli.py:55 in   │
+│ _describe_connector                                                          │
+│                                                                              │
+│    52                                                                        │
+│    53                                                                        │
+│    54 def _describe_connector(name: str, settings: Settings) ->              │
+│       ConnectorStatus:                                                       │
+│ ❱  55 │   return registry.REGISTRY()[name].status(settings)                  │
+│    56                                                                        │
+│    57                                                                        │
+│    58 connector_describer: Callable[[str, Settings], ConnectorStatus] =      │
+│       _describe_connector                                                    │
+│                                                                              │
+│ /Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/connectors/reg │
+│ istry.py:30 in _specs                                                        │
+│                                                                              │
+│   27                                                                         │
+│   28                                                                         │
+│   29 def _specs() -> dict[str, ConnectorSpec]:                               │
+│ ❱ 30 │   from mcp_ingest.connectors import confluence, gitlab, jira,         │
+│      opensearch                                                              │
+│   31 │                                                                       │
+│   32 │   return {                                                            │
+│   33 │   │   "confluence": ConnectorSpec(                                    │
+│                                                                              │
+│ /Users/manh.le/Desktop/MCP/packages/mcp_ingest/src/mcp_ingest/connectors/jir │
+│ a.py:25 in <module>                                                          │
+│                                                                              │
+│    22 from typing import Any                                                 │
+│    23                                                                        │
+│    24 from mcp_common.errors import ToolError                                │
+│ ❱  25 from mcp_jira.client import JiraClient                                 │
+│    26 from mcp_jira.mappers import issue_url                                 │
+│    27 from mcp_jira.settings import Settings as JiraSettings                 │
+│    28                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ModuleNotFoundError: No module named 'mcp_jira'
+
+$ mcp-ingest run --source confluence --json --dry-run  (space=EA FULL, real tenant, REAL bge-m3 offline)
+
+exit=1
+dryrun_exit=1
+=== DB counts after dry-run (must be unchanged 3/27) ===
+ docs=3
+
+ chunks=27
+

@@ -1,0 +1,18 @@
+using egress fn: check_egress
+allowlist env MCP_EGRESS_ALLOWLIST = *.atlassian.net
+egress public names: ['CommonSettings', 'EgressDenied', 'NotPermittedError', 'SOURCE', 'annotations', 'check_egress', 'fnmatch', 'host_allowed', 'parse_allowlist', 'resolve_host']
+=== introspect done; now functional deny test ===
+try check_egress (host_or_url: 'str', *, allowlist: 'list[str] | None' = None, settings: 'CommonSettings | None' = None, request_id: 'str | None' = None) -> 'str'
+  host=tnexwm.atlassian.net         -> ALLOWED                      expected=ALLOW  OK
+  host=evil.example.com             -> DENIED (EgressDenied)        expected=DENY  OK
+  host=huggingface.co               -> DENIED (EgressDenied)        expected=DENY  OK
+=== E-009 token-leak scan across all CHG-003 EA evidence files ===
+clean: 20261002-154407-chg003-confluence-dryrun-EA.txt
+clean: 20261002-154535-chg003-dryrun-EA.txt
+clean: 20261002-154616-chg003-dryrun-EA.txt
+clean: 20261002-154635-chg003-realpull-EA.txt
+clean: 20261002-154716-chg003-verify-kb-semantic-search-EA.txt
+clean: 20261002-154745-chg003-verify-kb-semantic-search-EA.txt
+clean: 20261002-154756-chg003-smoke-prod.txt
+clean: 20261002-154819-chg003-egress-deny-proof.txt
+leak_flag=0

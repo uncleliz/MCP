@@ -1,44 +1,56 @@
-# Gate 2 brief — mcp-data-platform (CAB go-live)
+# Gate 2 brief — mcp-data-platform · CHG-003 (real ingestion + egress, Confluence first)
+
+> Gate 2 cho **baseline thứ ba** (CHG-003). Baseline 9-source đã live local (1/10). CHG-001 Company Knowledge
+> **đang hoãn** (không nằm trong lần go-live này). CHG-003 build xong, QA PASS, review round 1 **APPROVE**,
+> CTO D-007 **READY_FOR_CAB = YES**. Nguồn: 7-release/cab-pack.md.
 
 ## Summary (shown in chat, ≤ 10 lines)
-- Thay đổi: 9 MCP server read-only (Confluence, GitLab, OpenSearch, Kibana, CloudWatch, Kafka, Redis, SQS/SNS, Postgres+pgvector) chạy local qua stdio + pipeline ingest/embedding.
-- Chất lượng: review round 2 **APPROVE**, 0 critical / 0 high. Defect: 4 tìm thấy / 4 đóng / 0 chấp nhận-mở.
-- Rủi ro: **medium**. Rollback **<60s** (gỡ stdio entry + dừng scheduler); migration expand-only.
-- CTO: **READY_FOR_CAB** (D-002), santa-method 2 checker đều PASS.
-- **Cần CEO chấp nhận rủi ro (ĐK1, blocking):** NFR-003 (chất lượng semantic) CHƯA đo được — số recall 0.95 chỉ là tính đúng của ANN-index dưới fake provider; đo thật bị chặn bởi HF egress + ADR-0010 chưa chốt model.
-- Caveat khác (không block): 153 pg-test skip trên non-Debian (đã phủ qua e2e); CI chạy tay; migration an toàn cho lần deploy đầu; live-source check cần VPN/creds (sign-off tay).
-- CTO khuyến nghị: **chấp nhận cho v1** (read-only, không mất dữ liệu, đo thật bị chặn môi trường), đo NFR-003 trong CHG-001 khi egress/ADR-0010 được giải quyết.
-- DEPLOY_MODE=script → nếu duyệt, production deploy sẽ cần bạn xác nhận + Kiro permission prompt.
+- Thay đổi: **mở egress thật** cho đường ingest-pull (`*.atlassian.net`, Confluence Cloud `tnexwm.atlassian.net` **trước**) + tải model embedding thật một lần từ `huggingface.co`; thêm **Atlassian là vendor** + lưu **token read-only**; **runbook CLI cho cả 9 source** (4 ingest được + 5 live-only).
+- Bất biến vẫn giữ: 9 server read-only + stdio (NFR-005), **0 tool ghi** (62 tool), egress **default-deny 1 choke point**, token **scrub cả 2 chiều**; choke point permission/grounding của CHG-001 không đổi.
+- Chất lượng: review round 1 **APPROVE** (0 critical / 0 high / 1 medium / 1 low). Defect: 9 tìm / 8 đóng / **1 chấp nhận-mở** (E-008 S3, lỗ hổng cũ Kibana thiếu test E2E) / **0 open S1/S2**.
+- Bằng chứng: make ci xanh **2344 passed / 0 failed** (~90% cov), verify_tool_surface **50/50** (62=contract, 0 write × 11 server), **4 test đối kháng §6e đều đạt** (egress default-deny không mở socket, allow-list fail-closed, token không rò + wiring thật E-009, server read-only+stdio), Confluence Cloud e2e trên pgvector thật, chặn-rò restricted trên nội dung ingest thật.
+- Rủi ro: **medium**. Rollback **<60s** (bỏ `MCP_EGRESS_ALLOWLIST` + gỡ token + dừng ingest connector); không có schema mới; egress thật mặc định TẮT (gated sau `MCP_INGEST_ALLOW_LIVE_EGRESS`).
+- **Cần CEO chấp nhận rủi ro (blocking, giống DK1 lần trước):** NFR-003 chất lượng semantic **vẫn chưa đo** — egress giờ có thể mở nhưng chưa chạy golden-set thật; cả CI lẫn dev đều dùng fake provider. Đo thật = bước @live (tải bge-m3 ~2GB) + spike S2.
+- Caveat khác (không block): τ chưa calibrate; R-C3-001 (HttpEmbeddingProvider off-by-default chưa qua egress-guard, cần hardening trước khi dùng provider=http); E-008 S3; nối tenant thật + đăng ký Claude Desktop (NFR-005) là bước tay cần token read-only + mạng.
+- DEPLOY_MODE=script → nếu duyệt, bước deploy local + lần egress thật ĐẦU TIÊN cần anh xác nhận + cung cấp **token Atlassian read-only** lúc chạy.
 Full brief: docs/squad/features/mcp-data-platform/7-release/cab-pack.md · sources: cab-pack.md
 
 ## Details
 
 ### Change record
-- Feature: mcp-data-platform (tier large). Branch `claude/zealous-johnson-yb3t2q` @ 0363fcc. Chưa merge main, chưa PR.
-- Go-live tag đề xuất: `release/mcp-data-platform-20261001`.
-- Kiến trúc: per-user local stdio trong Claude Desktop/Code; không có service UAT/PRE dùng chung → PRE-equivalent verification chạy trên dev host thật + Docker (e2e 34/34, 10/10 P1 pgvector trên PostgreSQL 16.15 + pgvector 0.8.6, coverage 89.97%).
+- Baseline CHG-003 trên base b898040 (branch `claude/zealous-johnson-yb3t2q`). Go-live tag đề xuất `release/mcp-data-platform-chg003-20261002`.
+- Target: máy local của CEO (per-user stdio; prod=local). Không có service UAT/PRE dùng chung → PRE-equivalent = dev host thật + Docker pgvector 0.8.6.
+- CHG-001 Company Knowledge **hoãn**, giữ nguyên artifact (Appendix trong cab-pack); không nằm trong go-live này.
 
-### Defects (E-001..E-004, tất cả đóng + verified)
-- E-001 / R-001: GitLab job-trace nay bounded (RESPONSE_TOO_LARGE, cap 10 MiB).
-- E-002 / R-002: deny-glob mở rộng (.env.*, id_ed25519, *.key/*.p12/*.pfx/*.jks, *.tfstate*, .npmrc/.netrc).
-- E-003 / R-003: error envelope + log stderr đều qua scrub().
-- E-004 / R-004: nhãn recall sửa lại = ANN-index correctness; NFR-003 đánh dấu UNVERIFIED (signoff + ADR-0011 A3 + architecture.md).
+### Phạm vi CHG-003
+- Egress default-deny, allow-list chỉ host nguồn cho đường ingest-pull (`*.atlassian.net` trước; gitlab/opensearch/jira khi cấu hình) + `huggingface.co` cho 1 lần tải model.
+- Atlassian = vendor; token API **read-only least-privilege** qua env/*_FILE, không commit/log/trả về (scrub 2 chiều); `doctor` từ chối tài khoản có quyền ghi.
+- Runbook CLI 9 source, Confluence trước: 4 **ingest được** (Confluence, GitLab, OpenSearch, Jira: doctor→ingest→status→verify kb_semantic_search) + 5 **live-only** (CloudWatch, Kibana, Kafka, Redis, SQS/SNS: doctor→đăng ký→tools/list; KHÔNG ingest).
 
-### Gate-C caveats (CTO xác nhận, đưa lên CEO)
-1. **NFR-003 semantic quality UNVERIFIED** — ĐK1 blocking: cần CEO/PO chấp nhận ship v1 chưa đo, nếu không thì hoãn go-live.
-2. 153 package-level pg test skip trên non-Debian (hành vi đã phủ qua e2e MCP_E2E_PG_URL). Owner backend.
-3. CI chưa có runner enforce; 5 gate chạy qua `make ci` thủ công.
-4. Migration-locking an toàn cho lần deploy đầu (bảng rỗng); xem lại trước lần đổi schema sau (trước CHG-001 epic E1).
-5. Live-source check (Confluence/GitLab shape, doctor live, đăng ký Claude Desktop, eval thật) = checklist sign-off tay cần VPN/creds.
+### Defects (errors.sh)
+- E-001..E-007 đóng (base + CHG-001). E-009 (S2, token-scrub chưa wire ở production) **đã fix + QA verify-close**. E-008 (S3, Kibana FR-005 thiếu test E2E, lỗi cũ) **chấp nhận-mở**, hoãn cho CTO. 0 open S1/S2.
 
-### Deferred (residual risk v1): R-006..R-027 (22 medium/low) — xem cab-pack.md §9.
+### CTO conditions (D-007 READY_FOR_CAB)
+- DK1 (blocking Gate 2): CEO chấp nhận ship với NFR-003 chưa đo, nếu không thì hoãn tới khi đo bge-b3/S2.
+- DK2 (sau cut-over): smoke prod + cửa sổ quan sát 30 phút xanh (liveness + bất biến egress-default-deny + token-không-rò); bất kỳ trigger → rollback ngay <60s + Gate 2 mới.
+- DK3 (deploy guard, đã xác nhận): cần `cab-approval.md` CHG-003 status approved mới; approval 1/10 KHÔNG phủ change này.
+- DK4: hardening R-C3-001 trước khi dùng provider=http; fix E-008 ở change kế tiếp an toàn renumber.
+- DK5: ghi lại id một snapshot Postgres khôi phục được trước lần pull thật đầu tiên.
 
-### CTO conditions (D-002)
-- ĐK1 (Gate 2 blocking): CEO/PO chấp nhận NFR-003 chưa đo, hoặc hoãn.
-- ĐK2 (sau go-live, trước CHG-001 E1): fix R-006/R-007 migration-locking.
-- ĐK3: Redis dev ACL (R-013) không tái dùng cho staging/shared.
-- ĐK4: follow-up R-005-secondary / R-012 / R-016.
-- Smoke + cửa sổ quan sát 30 phút phải xanh sau cut-over; bất kỳ rollback trigger → rollback ngay + Gate 2 mới.
+### §11 Operator runbook (anh sẽ chạy để bật thật — xem cab-pack §11 / architecture Appendix A)
+1. `export MCP_CONFLUENCE_BASE_URL=https://tnexwm.atlassian.net/wiki`
+2. `export MCP_CONFLUENCE_FLAVOR=cloud`
+3. `export MCP_CONFLUENCE_EMAIL=<email service account>`
+4. `export MCP_CONFLUENCE_API_TOKEN_FILE=/path/confluence.token`  (token **read-only**, không commit)
+5. `export MCP_EGRESS_ALLOWLIST='*.atlassian.net'`  (bắt buộc — nếu không, pull bị default-deny)
+6. `export MCP_INGEST_ALLOW_LIVE_EGRESS=true`  (chỉ cho lần chạy thật)
+7. `mcp-confluence doctor` → `mcp-ingest run --source confluence` → `mcp-ingest status --json` → verify `kb_semantic_search`
+- Tạo token read-only: Atlassian account → Security → API tokens (mô tả trong cab-pack; **không nhúng token vào repo**).
 
 ### Rollback
-- <60s: gỡ per-user stdio entry khỏi Claude Desktop/Code config + dừng scheduler ingest. Migration expand-only, không phá dữ liệu.
+- <60s: `unset MCP_EGRESS_ALLOWLIST` + gỡ token + dừng ingest connector. Không schema mới. Egress thật default-off.
+
+### Lựa chọn cho CEO tại Gate 2
+1. **Duyệt go-live** (chấp nhận NFR-003 chưa đo cho v1; bật ingest thật Confluence trước qua CLI).
+2. **Hoãn** (đặt cửa sổ mới) — ví dụ muốn đo NFR-003 bằng model thật trước khi go-live.
+3. **Từ chối**.

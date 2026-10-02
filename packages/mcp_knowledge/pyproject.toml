@@ -1,0 +1,37 @@
+[project]
+name = "mcp-knowledge"
+version = "0.1.0"
+description = "Read-only Company Knowledge MCP server: Hybrid-RAG retrieval, reranker (local offline), context-pack assembler / grounding gate (CHG-001 E3..E8, FR-016..FR-022)."
+requires-python = ">=3.12"
+dependencies = [
+  "mcp-common",
+  # Only `mcp_ingest.ports` and `mcp_ingest.embedding` are imported (R19): the embedding stack
+  # never imports psycopg or the ingest write path (enforced by mcp_ingest's import-boundary test).
+  # Reused here exactly as `mcp-pgvector` does so the query is embedded in the SAME space.
+  "mcp-ingest",
+  "psycopg[binary]>=3.2,<4",
+  "pgvector>=0.3",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "mcp<2",
+]
+
+[project.optional-dependencies]
+# The cross-encoder reranker (bge-reranker-v2-m3) is loaded LOCALLY and OFFLINE (HF_HUB_OFFLINE=1,
+# ADR-0020). Optional: absence makes the retrieval engine fall back to RRF-only (transparently,
+# see rerank/local.py). sentence-transformers brings CrossEncoder.
+local-reranker = ["sentence-transformers>=3.0"]
+
+[project.scripts]
+mcp-knowledge = "mcp_knowledge.cli:main"
+
+[tool.uv.sources]
+mcp-common = { workspace = true }
+mcp-ingest = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_knowledge"]

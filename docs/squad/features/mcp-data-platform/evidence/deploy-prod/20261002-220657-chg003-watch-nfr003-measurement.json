@@ -1,0 +1,177 @@
+{
+  "measured_at": "2026-10-02T15:07:08.981796+00:00",
+  "model": "BAAI/bge-m3",
+  "provider": "local",
+  "hf_hub_offline": "1",
+  "corpus": {
+    "documents_total": 3,
+    "chunks_total": 27,
+    "note": "corpus = 3 docs/27 chunks; of these ONLY 1 doc/25 chunks is the real EA Confluence page (tnexwm.atlassian.net). The other 2 docs (1 chunk each) are Oct-1 demo seed rows (wiki.example.test), not real EA content."
+  },
+  "A_ann_index_correctness": {
+    "what": "HNSW top-k vs exact brute force (enable_indexscan=off) — ADR-0011 A3. NOT a semantic-quality measure (E-004/L-002).",
+    "top_k": 5,
+    "hnsw_index_used": false,
+    "mean_recall": 1.0,
+    "per_query": {
+      "GQ-01": 1.0,
+      "GQ-02": 1.0,
+      "GQ-03": 1.0,
+      "GQ-04": 1.0,
+      "GQ-05": 1.0,
+      "GQ-06": 1.0,
+      "GQ-07": 1.0,
+      "GQ-08": 1.0
+    }
+  },
+  "B_semantic_relevance_NFR003": {
+    "what": "First real-model (bge-m3) measurement of NFR-003 semantic retrieval over the real corpus. REAL-BUT-SMALL-SAMPLE; not a population recall; do not extrapolate.",
+    "sample_size_queries": 8,
+    "corpus_scope": "EA document 1c274560 only (the one real Confluence page); demo-seed docs not probed",
+    "top_k": 5,
+    "hit_at_k_count": 8,
+    "hit_at_k_rate": 1.0,
+    "mrr": 1.0,
+    "calibration_status": "uncalibrated",
+    "per_query": [
+      {
+        "id": "GQ-01",
+        "query": "Job retry gửi ZNS chạy lúc mấy giờ?",
+        "relevant_chunk_ids": [
+          23
+        ],
+        "returned_top_k": [
+          23,
+          16,
+          17,
+          26,
+          18
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.7344
+      },
+      {
+        "id": "GQ-02",
+        "query": "Cấu hình link OneLink trên Zalo như thế nào?",
+        "relevant_chunk_ids": [
+          3,
+          4,
+          5
+        ],
+        "returned_top_k": [
+          4,
+          3,
+          5,
+          6,
+          15
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.6553
+      },
+      {
+        "id": "GQ-03",
+        "query": "Tạo OneLink trên AppsFlyer làm sao?",
+        "relevant_chunk_ids": [
+          6
+        ],
+        "returned_top_k": [
+          6,
+          4,
+          9,
+          14,
+          10
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.7209
+      },
+      {
+        "id": "GQ-04",
+        "query": "Các tham số bắt buộc để AppsFlyer ghi nhận MMP là gì?",
+        "relevant_chunk_ids": [
+          10
+        ],
+        "returned_top_k": [
+          10,
+          9,
+          6,
+          11,
+          8
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.765
+      },
+      {
+        "id": "GQ-05",
+        "query": "Luồng tự động gửi ZNS khi khách onboard tài khoản",
+        "relevant_chunk_ids": [
+          26
+        ],
+        "returned_top_k": [
+          26,
+          27,
+          18,
+          17,
+          14
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.6899
+      },
+      {
+        "id": "GQ-06",
+        "query": "Cách kiểm tra logs backend service khi lỗi gửi ZNS",
+        "relevant_chunk_ids": [
+          20
+        ],
+        "returned_top_k": [
+          20,
+          16,
+          17,
+          19,
+          18
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.6828
+      },
+      {
+        "id": "GQ-07",
+        "query": "Quản lý ZNS template ở đâu?",
+        "relevant_chunk_ids": [
+          24
+        ],
+        "returned_top_k": [
+          24,
+          17,
+          26,
+          27,
+          14
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.7005
+      },
+      {
+        "id": "GQ-08",
+        "query": "Cấu hình API Call trong Insider trên môi trường UAT",
+        "relevant_chunk_ids": [
+          11
+        ],
+        "returned_top_k": [
+          11,
+          8,
+          7,
+          9,
+          6
+        ],
+        "hit_at_k": true,
+        "first_relevant_rank": 1,
+        "top_similarity": 0.8091
+      }
+    ]
+  }
+}
